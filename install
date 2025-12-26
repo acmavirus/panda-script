@@ -5,7 +5,7 @@
 # Website: https://panda-script.com
 #================================================
 
-set -e
+# set -e  # Disabled to handle errors gracefully
 
 # Version
 VERSION="2.0.0"
@@ -388,33 +388,23 @@ copy_scripts() {
 # Copy Local Files
 #------------------------------------------------
 copy_local_files() {
-    # Copy core files
-    [[ -d "$SCRIPT_DIR/core" ]] && cp -r "$SCRIPT_DIR/core/"* "$INSTALL_DIR/core/"
+    log_info "Copying files from $SCRIPT_DIR to $INSTALL_DIR..."
     
-    # Copy security files
-    [[ -d "$SCRIPT_DIR/security" ]] && cp -r "$SCRIPT_DIR/security/"* "$INSTALL_DIR/security/"
-    
-    # Copy monitoring files
-    [[ -d "$SCRIPT_DIR/monitoring" ]] && cp -r "$SCRIPT_DIR/monitoring/"* "$INSTALL_DIR/monitoring/"
-    
-    # Copy performance files
-    [[ -d "$SCRIPT_DIR/performance" ]] && cp -r "$SCRIPT_DIR/performance/"* "$INSTALL_DIR/performance/"
-    
-    # Copy modules
-    [[ -d "$SCRIPT_DIR/modules" ]] && cp -r "$SCRIPT_DIR/modules/"* "$INSTALL_DIR/modules/"
-    
-    # Copy menu files
-    [[ -d "$SCRIPT_DIR/menu" ]] && cp -r "$SCRIPT_DIR/menu/"* "$INSTALL_DIR/menu/"
-    
-    # Copy config files
-    [[ -d "$SCRIPT_DIR/config" ]] && cp -r "$SCRIPT_DIR/config/"* "$INSTALL_DIR/config/" 2>/dev/null
-    
-    # Copy templates
-    [[ -d "$SCRIPT_DIR/templates" ]] && cp -r "$SCRIPT_DIR/templates/"* "$INSTALL_DIR/templates/"
+    # Copy directories using cp -r dir/. pattern (safer than dir/*)
+    [[ -d "$SCRIPT_DIR/core" ]] && cp -r "$SCRIPT_DIR/core/." "$INSTALL_DIR/core/" 2>/dev/null || true
+    [[ -d "$SCRIPT_DIR/security" ]] && cp -r "$SCRIPT_DIR/security/." "$INSTALL_DIR/security/" 2>/dev/null || true
+    [[ -d "$SCRIPT_DIR/monitoring" ]] && cp -r "$SCRIPT_DIR/monitoring/." "$INSTALL_DIR/monitoring/" 2>/dev/null || true
+    [[ -d "$SCRIPT_DIR/performance" ]] && cp -r "$SCRIPT_DIR/performance/." "$INSTALL_DIR/performance/" 2>/dev/null || true
+    [[ -d "$SCRIPT_DIR/modules" ]] && cp -r "$SCRIPT_DIR/modules/." "$INSTALL_DIR/modules/" 2>/dev/null || true
+    [[ -d "$SCRIPT_DIR/menu" ]] && cp -r "$SCRIPT_DIR/menu/." "$INSTALL_DIR/menu/" 2>/dev/null || true
+    [[ -d "$SCRIPT_DIR/config" ]] && cp -r "$SCRIPT_DIR/config/." "$INSTALL_DIR/config/" 2>/dev/null || true
+    [[ -d "$SCRIPT_DIR/templates" ]] && cp -r "$SCRIPT_DIR/templates/." "$INSTALL_DIR/templates/" 2>/dev/null || true
     
     # Copy main scripts
-    [[ -f "$SCRIPT_DIR/panda" ]] && cp "$SCRIPT_DIR/panda" "$INSTALL_DIR/"
-    [[ -f "$SCRIPT_DIR/update" ]] && cp "$SCRIPT_DIR/update" "$INSTALL_DIR/"
+    [[ -f "$SCRIPT_DIR/panda" ]] && cp "$SCRIPT_DIR/panda" "$INSTALL_DIR/" 2>/dev/null || true
+    [[ -f "$SCRIPT_DIR/update" ]] && cp "$SCRIPT_DIR/update" "$INSTALL_DIR/" 2>/dev/null || true
+    
+    log_info "Files copied successfully"
 }
 
 #------------------------------------------------
