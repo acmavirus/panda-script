@@ -344,7 +344,7 @@ install_dependencies() {
 create_directories() {
     log_info "Creating directory structure..."
     
-    mkdir -p "$INSTALL_DIR"/{core,security,monitoring,performance,modules,menu,data,templates}
+    mkdir -p "$INSTALL_DIR"/{core,config,security,monitoring,performance,modules,menu,data,templates}
     mkdir -p "$INSTALL_DIR"/security/{firewall,ddos,intrusion,hardening,audit}
     mkdir -p "$INSTALL_DIR"/monitoring/{collectors,analyzers,alerts,daemon}
     mkdir -p "$INSTALL_DIR"/performance/{tuning,cache,benchmark}
