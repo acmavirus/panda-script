@@ -14,7 +14,7 @@ manage_wp_cli() {
     
     if command -v wp &>/dev/null; then
         echo "WP-CLI is installed:"
-        wp --info | head -n 3
+        wp --info --allow-root | head -n 3
     else
         echo "WP-CLI is NOT installed."
     fi
@@ -40,7 +40,7 @@ install_wp_cli() {
     chmod +x wp-cli.phar
     mv wp-cli.phar /usr/local/bin/wp
     log_success "WP-CLI installed successfully!"
-    wp --version
+    wp --version --allow-root
     [[ "$1" != "--no-pause" ]] && pause
 }
 
