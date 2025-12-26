@@ -46,7 +46,8 @@ website_menu() {
 delete_website_numeric() {
     source "$PANDA_DIR/modules/website/create.sh"
     echo "Select website to delete:"
-    local domains=($(ls /etc/nginx/sites-available | grep -v "default" | grep ".conf" | sed 's/\.conf//'))
+    # List files in sites-available excluding 'default', handle both with and without .conf
+    local domains=($(ls /etc/nginx/sites-available | grep -v "default"))
     
     if [ ${#domains[@]} -eq 0 ]; then
         log_warning "No websites found."
@@ -55,7 +56,9 @@ delete_website_numeric() {
     fi
 
     for i in "${!domains[@]}"; do
-        echo "  $((i+1)). ${domains[$i]}"
+        # Display name without .conf for cleaner UI if it exists
+        local display_name="${domains[$i]%.conf}"
+        echo "  $((i+1)). $display_name"
     done
     echo "  0. Back"
     echo ""
@@ -65,6 +68,7 @@ delete_website_numeric() {
     
     local idx=$((selection-1))
     if [[ -n "${domains[$idx]}" ]]; then
+        # Use full filename for deletion function
         delete_website "${domains[$idx]}"
     else
         log_error "Invalid selection"
