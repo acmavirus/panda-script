@@ -39,7 +39,7 @@ manage_containers() {
         echo "  1. Install Docker"
         echo "  0. Back"
         read -p "Choice: " c
-        [[ "$c" == "1" ]] && install_node_env # Wait, I meant install_docker
+        [[ "$c" == "1" ]] && install_docker
         return
     fi
     
@@ -51,6 +51,7 @@ manage_containers() {
     echo "  3. Stop Container"
     echo "  4. View Container Logs"
     echo "  5. Deploy One-click Apps (Redis, MongoDB, etc.)"
+    echo "  6. 🔀 Create Nginx Proxy for Container"
     echo "  0. Back"
     echo ""
     read -p "Choice: " choice
@@ -73,6 +74,10 @@ manage_containers() {
             pause 
             ;;
         5) deploy_docker_apps ;;
+        6) 
+            source "$PANDA_DIR/modules/nginx/proxy.sh"
+            proxy_bridge_wizard
+            ;;
         0) return ;;
     esac
 }

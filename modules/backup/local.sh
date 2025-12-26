@@ -36,6 +36,10 @@ backup_all() {
     # Backup configs
     tar -czf "$BACKUP_DIR/config_backup_$timestamp.tar.gz" /etc/nginx /etc/php 2>/dev/null
     
+    # Generate Integrity Hashes
+    md5sum "$backup_file" > "${backup_file}.md5"
+    log_info "Integrity hash generated for main backup."
+    
     log_success "Full backup created: $backup_file"
 }
 

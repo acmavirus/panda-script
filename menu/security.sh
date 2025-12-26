@@ -17,6 +17,7 @@ security_menu() {
         echo "  10. 🛡️  Enable WAF (7G)"
         echo "  11. 🔍  Malware Scanner"
         echo "  12. 🛡️  WP Security Hardening"
+        echo "  13. 🛡️  Panda Guard (IP Whitelist)"
         echo "  0. Back"
         echo ""
         read -p "Enter your choice: " choice
@@ -65,6 +66,7 @@ security_menu() {
                 fi
                 ;;
             12) source "$PANDA_DIR/security/wp_fail2ban.sh"; harden_wordpress_security ;;
+            13) source "$PANDA_DIR/modules/security/guard.sh"; guard_menu ;;
             0) return ;;
         esac
     done

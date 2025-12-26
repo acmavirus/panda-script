@@ -17,6 +17,7 @@ php_menu() {
         echo "  3. Switch PHP Version"
         echo "  4. Restart PHP-FPM"
         echo "  5. 📦 Composer Management"
+        echo "  6. 📦 PHP Extension Manager"
         echo "  0. Back"
         echo ""
         read -p "Enter your choice: " choice
@@ -41,6 +42,7 @@ php_menu() {
                 pause
                 ;;
             5) source "$PANDA_DIR/modules/php/composer.sh"; manage_composer ;;
+            6) source "$PANDA_DIR/modules/php/php_ext.sh"; php_ext_menu ;;
             0) return ;;
             *) log_error "Invalid option"; pause ;;
         esac

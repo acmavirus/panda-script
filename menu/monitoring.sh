@@ -12,6 +12,7 @@ monitoring_menu() {
         echo "  5. Start Monitor Daemon"
         echo "  6. Stop Monitor Daemon"
         echo " 10. 🏥 Auto-Heal Services"
+        echo " 11. 🩺 Panda Doctor (Health Check)"
         echo "  0. Back"
         echo ""
         read -p "Enter your choice: " choice
@@ -24,6 +25,7 @@ monitoring_menu() {
             5) source "$PANDA_DIR/monitoring/daemon/monitor_daemon.sh"; start_daemon; pause ;;
             6) source "$PANDA_DIR/monitoring/daemon/monitor_daemon.sh"; stop_daemon; pause ;;
             10) source "$PANDA_DIR/monitoring/auto_heal.sh"; auto_heal_services; pause ;;
+            11) source "$PANDA_DIR/monitoring/doctor.sh"; run_diagnostics ;;
             0) return ;;
         esac
     done

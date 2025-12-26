@@ -10,7 +10,7 @@ show_main_menu() {
     while true; do
         clear
         echo -e "${CYAN}╔══════════════════════════════════════════════════════════════╗${NC}"
-        echo -e "${CYAN}║          🐼 Panda Script v2.2 - Server Management            ║${NC}"
+        echo -e "${CYAN}║          🐼 Panda Script v2.2.1 - Server Management          ║${NC}"
         echo -e "${CYAN}╠══════════════════════════════════════════════════════════════╣${NC}"
         echo -e "${CYAN}║${NC}  1. 🌐 Website Management                                    ${CYAN}║${NC}"
         echo -e "${CYAN}║${NC}  2. 📊 Database Management                                   ${CYAN}║${NC}"
