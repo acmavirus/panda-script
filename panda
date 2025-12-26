@@ -1,0 +1,82 @@
+#!/bin/bash
+#================================================
+# Panda Script v2.0 - CLI Management Tool
+# Main menu interface for server management
+# Website: https://panda-script.com
+#================================================
+
+# Panda installation directory
+PANDA_DIR="/opt/panda"
+
+# Load core modules
+source_core() {
+    if [[ -f "$PANDA_DIR/core/init.sh" ]]; then
+        source "$PANDA_DIR/core/init.sh"
+    else
+        echo "Error: Panda Script is not installed properly."
+        echo "Please run the installer first."
+        exit 1
+    fi
+}
+
+# Main entry point
+main() {
+    source_core
+    
+    # Check if menu module exists
+    if [[ -f "$PANDA_DIR/menu/main.sh" ]]; then
+        source "$PANDA_DIR/menu/main.sh"
+        show_main_menu
+    else
+        echo "Error: Menu module not found."
+        exit 1
+    fi
+}
+
+# Handle command line arguments
+case "${1:-}" in
+    -h|--help)
+        echo "Panda Script v2.0 - Server Management Tool"
+        echo ""
+        echo "Usage: panda [command]"
+        echo ""
+        echo "Commands:"
+        echo "  (no args)     Open interactive menu"
+        echo "  status        Show server status"
+        echo "  restart       Restart all services"
+        echo "  backup        Run backup now"
+        echo "  update        Update Panda Script"
+        echo "  -h, --help    Show this help"
+        echo "  -v, --version Show version"
+        echo ""
+        ;;
+    -v|--version)
+        echo "Panda Script v2.0.0"
+        ;;
+    status)
+        source_core
+        source "$PANDA_DIR/monitoring/daemon/health_check.sh"
+        quick_status
+        ;;
+    restart)
+        source_core
+        source "$PANDA_DIR/core/service.sh"
+        restart_all_services
+        ;;
+    backup)
+        source_core
+        source "$PANDA_DIR/modules/backup/local.sh"
+        run_backup
+        ;;
+    update)
+        source_core
+        if [[ -f "$PANDA_DIR/../update" ]]; then
+            bash "$PANDA_DIR/../update"
+        else
+            echo "Update script not found"
+        fi
+        ;;
+    *)
+        main
+        ;;
+esac
