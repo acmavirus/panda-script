@@ -6,6 +6,7 @@
 source "${PANDA_DIR:-/opt/panda}/core/init.sh" 2>/dev/null || true
 
 tail_logs() {
+    install_multitail
     local domain="$1"
     
     if [[ -z "$domain" ]]; then

@@ -141,8 +141,26 @@ test_reliability() {
     fi
 }
 
+# --- 0. Demo Readiness Fixer ---
+prepare_demo() {
+    if [[ "$1" == "--fix" ]]; then
+        print_section "0. Preparing Demo Environment"
+        log_info "Installing missing dependencies (Redis, Memcached, Multitail)..."
+        apt-get update &>/dev/null
+        apt-get install -y redis-server memcached multitail &>/dev/null
+        systemctl enable --now redis-server memcached &>/dev/null
+        
+        log_info "Ensuring WP-CLI is installed..."
+        if ! command -v wp &>/dev/null; then
+            source "$PANDA_DIR/modules/website/wp_cli.sh" 2>/dev/null && install_wp_cli --no-pause || true
+        fi
+        log_success "Demo environment prepared!"
+    fi
+}
+
 # --- Main Execution ---
 clear
+prepare_demo "$1"
 echo -e "${CYAN}╔══════════════════════════════════════════════════════════════╗${NC}"
 echo -e "${CYAN}║       🐼 Panda Script v2.2.0 - FULL AUDIT & DEMO             ║${NC}"
 echo -e "${CYAN}╚══════════════════════════════════════════════════════════════╝${NC}"
