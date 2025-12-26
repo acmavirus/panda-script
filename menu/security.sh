@@ -12,6 +12,7 @@ security_menu() {
         echo "  5. List Blocked IPs"
         echo "  6. SSH Hardening"
         echo "  7. Run Security Scan"
+        echo "  8. 🔒 Change SSH Port"
         echo "  0. Back"
         echo ""
         read -p "Enter your choice: " choice
@@ -34,6 +35,7 @@ security_menu() {
             5) source "$PANDA_DIR/security/ddos/blacklist.sh"; list_blacklist; pause ;;
             6) source "$PANDA_DIR/security/hardening/ssh_harden.sh"; harden_ssh; pause ;;
             7) source "$PANDA_DIR/security/ddos/detector.sh"; detect_ddos; pause ;;
+            8) source "$PANDA_DIR/modules/security/ssh_port.sh"; change_ssh_port ;;
             0) return ;;
         esac
     done
