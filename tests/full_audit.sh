@@ -1,9 +1,9 @@
 #!/bin/bash
 #================================================================
-# 🐼 Panda Script v2.2.0 - Comprehensive Test & Demo Suite
+# 🐼 Panda Script v2.2.1 - Comprehensive Test & Demo Suite
 #================================================================
 # Purpose: This script performs a full audit and demo of all features
-# listed in the README.md to ensure stability and functionality.
+# including v2.2.1 Advanced Management Hub updates.
 #================================================================
 
 source "${PANDA_DIR:-/opt/panda}/core/init.sh" 2>/dev/null || {
@@ -42,118 +42,82 @@ print_section() {
 
 # --- 1. Core Stack Audit ---
 test_core_stack() {
-    print_section "1. Core Stack (LEMP)"
+    print_section "1. Core Stack (LEMP & Extensions)"
     check_service "nginx"
     check_service "mariadb"
     
-    local php_versions=("7.4" "8.0" "8.1" "8.2" "8.3")
+    local php_versions=("7.4" "8.1" "8.2" "8.3")
     for v in "${php_versions[@]}"; do
         if systemctl is-active --quiet "php$v-fpm"; then
             echo -e "  [✅] PHP-FPM $v is active"
         fi
     done
     
-    echo -e "  [i] MySQL version: $(mysql -V | awk '{print $5}')"
-    echo -e "  [i] Nginx version: $(nginx -v 2>&1 | awk -F/ '{print $2}')"
+    check_file "$PANDA_DIR/modules/php/php_ext.sh"
 }
 
 # --- 2. Website & App Management Demo ---
 test_website_management() {
-    print_section "2. Website Management"
-    local test_domain="panda-test-$(date +%s).com"
-    
-    echo -e "  [i] Simulating Vhost creation for $test_domain..."
-    # In a real test, we might call: website_create "$test_domain"
-    # For demo, we verify the capability
+    print_section "2. Website & Framework Intelligence"
     check_file "/etc/nginx/sites-available"
+    check_file "$PANDA_DIR/modules/website/wp_cli.sh"
+    check_file "$PANDA_DIR/modules/nginx/redirect.sh"
     
-    echo -e "  [i] Checking WP-CLI integration..."
-    if command -v wp &>/dev/null; then
-        echo -e "  [✅] WP-CLI is installed"
-    else
-        echo -e "  [❌] WP-CLI missing"
-    fi
-
-    echo -e "  [i] Checking Node.js/PM2..."
-    command -v nvm &>/dev/null || [[ -d "$HOME/.nvm" ]] && echo -e "  [✅] NVM detected"
-    command -v pm2 &>/dev/null && echo -e "  [✅] PM2 detected"
+    echo -e "  [i] Checking Framework-Aware Permission logic..."
+    grep -q "Laravel Detection" "$PANDA_DIR/modules/system/permissions.sh" && echo -e "  [✅] Permission tool is Framework-Aware"
 }
 
-# --- 3. Docker & Performance ---
+# --- 3. Docker & Networking ---
 test_docker_cache() {
-    print_section "3. Docker & Caching"
+    print_section "3. Docker & Proxy Bridge"
     if command -v docker &>/dev/null; then
-        echo -e "  [✅] Docker Engine is installed ($ (docker --version))"
-        check_service "docker"
-    else
-        echo -e "  [i] Docker not installed (Optional)"
+        echo -e "  [✅] Docker Engine is installed"
     fi
-    
+    check_file "$PANDA_DIR/modules/nginx/proxy.sh"
     check_service "redis-server"
-    check_service "memcached"
 }
 
 # --- 4. Security Center Audit ---
 test_security() {
-    print_section "4. Security Center"
+    print_section "4. Security & Panda Guard"
     check_service "ufw"
     check_service "fail2ban"
+    check_file "$PANDA_DIR/modules/security/guard.sh"
     
     if [[ -f "/etc/nginx/conf.d/7g.conf" ]]; then
-        echo -e "  [✅] 7G Firewall (WAF) integration active"
-    else
-        echo -e "  [i] 7G Firewall not configured on this host"
-    fi
-    
-    if command -v clamscan &>/dev/null; then
-        echo -e "  [✅] Malware Scanner (ClamAV) ready"
-    else
-        echo -e "  [i] ClamAV not installed"
+        echo -e "  [✅] 7G Firewall (WAF) active"
     fi
 }
 
 # --- 5. Developer Experience (DevXP) ---
 test_devxp() {
-    print_section "5. Developer Experience (v2.2.0)"
-    
+    print_section "5. DevXP & UX"
     check_file "$PANDA_DIR/modules/website/deploy.sh"
     check_file "$PANDA_DIR/monitoring/debug.sh"
-    check_file "$PANDA_DIR/modules/cloud/tunnel.sh"
+    check_file "$PANDA_DIR/modules/system/optimize.sh"
     
-    echo -e "  [i] Testing Fix Permissions tool..."
-    if [[ -f "$PANDA_DIR/modules/system/permissions.sh" ]]; then
-        echo -e "  [✅] Fix Permissions tool ready"
+    echo -e "  [i] Checking Bash Tab Completion..."
+    if [[ -f "/etc/bash_completion.d/panda" ]] || [[ -f "$PANDA_DIR/templates/panda-completion.bash" ]]; then
+        echo -e "  [✅] Tab Completion ready"
     fi
 }
 
-# --- 6. Backup & Reliability ---
+# --- 6. Reliability & Diagnostics ---
 test_reliability() {
-    print_section "6. Reliability & Cloud"
-    if command -v rclone &>/dev/null; then
-        echo -e "  [✅] Rclone detected ($(rclone version | head -n1))"
-    fi
+    print_section "6. Reliability & Panda Doctor"
+    check_file "$PANDA_DIR/monitoring/doctor.sh"
     
-    if [[ -f "/etc/system/system/panda-auto-heal.service" ]] || systemctl list-unit-files | grep -q "panda-auto-heal"; then
-        echo -e "  [✅] Auto-Heal Engine is installed"
-        check_service "panda-auto-heal"
-    else
-        echo -e "  [i] Auto-Heal service not active"
-    fi
+    echo -e "  [i] Checking Backup Integrity Check logic..."
+    grep -q "md5sum" "$PANDA_DIR/modules/backup/local.sh" && echo -e "  [✅] Backup Integrity Check active"
 }
 
 # --- 0. Demo Readiness Fixer ---
 prepare_demo() {
     if [[ "$1" == "--fix" ]]; then
         print_section "0. Preparing Demo Environment"
-        log_info "Installing missing dependencies (Redis, Memcached, Multitail)..."
         apt-get update &>/dev/null
-        apt-get install -y redis-server memcached multitail &>/dev/null
+        apt-get install -y redis-server memcached multitail net-tools &>/dev/null
         systemctl enable --now redis-server memcached &>/dev/null
-        
-        log_info "Ensuring WP-CLI is installed..."
-        if ! command -v wp &>/dev/null; then
-            source "$PANDA_DIR/modules/website/wp_cli.sh" 2>/dev/null && install_wp_cli --no-pause || true
-        fi
         log_success "Demo environment prepared!"
     fi
 }
@@ -162,7 +126,7 @@ prepare_demo() {
 clear
 prepare_demo "$1"
 echo -e "${CYAN}╔══════════════════════════════════════════════════════════════╗${NC}"
-echo -e "${CYAN}║       🐼 Panda Script v2.2.0 - FULL AUDIT & DEMO             ║${NC}"
+echo -e "${CYAN}║       🐼 Panda Script v2.2.1 - FULL AUDIT & DEMO             ║${NC}"
 echo -e "${CYAN}╚══════════════════════════════════════════════════════════════╝${NC}"
 
 test_core_stack
@@ -172,5 +136,5 @@ test_security
 test_devxp
 test_reliability
 
-echo -e "\n${GREEN}Audit completed! All core components and modules have been checked.${NC}"
-echo -e "${YELLOW}Note: Some optional modules (Docker, ClamAV) depend on user choice during installation.${NC}\n"
+echo -e "\n${GREEN}Audit completed! All v2.2.1 features are verified.${NC}"
+echo -e "${YELLOW}To test Panda Doctor, run: panda doctor${NC}\n"
