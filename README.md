@@ -45,19 +45,22 @@ Panda Script là giải pháp CLI toàn diện giúp biến một máy chủ Lin
 -   **7G Firewall (WAF)**: Lớp bảo vệ Nginx chống SQL Injection, XSS và Bad Bots.
 -   **SFTP Jailed**: Tạo tài khoản SFTP bị giới hạn truy cập (chroot) trong thư mục website.
 -   **Malware Scan**: Sử dụng ClamAV để quét và cảnh báo mã độc trong mã nguồn.
+-   **Panda Guard (NEW)**: Whitelist IP bảo vệ SSH và Database khỏi mọi cuộc tấn công bên ngoài.
 
 ### 👨‍💻 Developer Experience (DevXP)
 -   **Panda Deploy**: CI/CD siêu nhẹ, tự động `git pull` và chạy build (Composer/NPM/Artisan) khi đẩy code.
 -   **Log Aggregator**: Xem mọi loại log (Nginx, PHP, App) tập trung trên một màn hình duy nhất.
 -   **Database Sync**: Clone nhanh database Production về Local/Staging để debug.
 -   **Cloudflare Tunnel**: Tạo public URL tạm thời trỏ thẳng vào port server để demo.
--   **Fix Permissions**: Công cụ "vạn năng" sửa lỗi 403/500 do sai quyền thư mục.
+-   **Fix Permissions (Smart)**: Tự nhận diện Framework (Laravel/WordPress) để set quyền tối ưu nhất.
+-   **Bash Tab Completion**: Nhấn [Tab] để tự gợi ý domain và lệnh (Cực kỳ tiện lợi).
 
 ### 🛠️ System Utilities
+-   **PHP Ext Manager (NEW)**: Cài đặt nhanh các PHP extension phổ biến (Imagick, Swoole, Intl...) chỉ với 1 click.
+-   **Docker Bridge (NEW)**: Tự động tạo Nginx Reverse Proxy khi chạy Container.
+-   **Panda Doctor (NEW)**: Hệ thống chẩn đoán "sức khỏe" Server toàn diện (Disk, RAM, SSL, Security).
 -   **Swap Manager**: Tạo hoặc mở rộng bộ nhớ Swap cho server ít RAM.
 -   **Junk Cleaner**: Dọn dẹp log cũ, cache và file tạm để giải phóng dung lượng đĩa.
--   **Composer/NVM**: Quản lý các công cụ dependency cho dev.
--   **Cronjob Manager**: Quản lý các tiến trình chạy ngầm dễ dàng qua CLI.
 
 ---
 
