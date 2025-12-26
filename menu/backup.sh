@@ -11,6 +11,7 @@ backup_menu() {
         echo "  4. List Backups"
         echo "  5. Restore from Backup"
         echo "  6. Cleanup Old Backups"
+        echo "  7. ☁️  Cloud Backup (Rclone)"
         echo "  0. Back"
         echo ""
         read -p "Enter your choice: " choice

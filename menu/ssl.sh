@@ -14,28 +14,20 @@ ssl_menu() {
         echo ""
         read -p "Enter your choice: " choice
         
-        source "$PANDA_DIR/modules/ssl/letsencrypt.sh"
-        
         case $choice in
             1)
                 local domain=$(prompt "Enter domain")
-                local email=$(prompt "Admin email")
-                obtain_ssl "$domain" "$email"
+                source "$PANDA_DIR/modules/ssl/install.sh"; issue_ssl "$domain"
                 pause
                 ;;
-            2) renew_ssl; pause ;;
-            3)
+            2)
                 local domain=$(prompt "Enter domain")
-                check_ssl_expiry "$domain"
+                source "$PANDA_DIR/modules/ssl/install.sh"; renew_ssl "$domain"
                 pause
                 ;;
-            4) list_ssl_certs; pause ;;
-            5)
-                local domain=$(prompt "Enter domain")
-                revoke_ssl "$domain"
-                pause
-                ;;
+            3) source "$PANDA_DIR/security/ssl_check.sh"; check_all_ssl ;;
             0) return ;;
+            *) log_error "Invalid option"; pause ;;
         esac
     done
 }

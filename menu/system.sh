@@ -16,6 +16,7 @@ system_menu() {
         echo "  2. 🧹 Junk File Cleaner"
         echo "  3. ⏰ Cronjob Manager"
         echo "  4. 📅 System Time & Hostname"
+        echo "  5. 🛠️  Fix Web Permissions"
         echo "  0. Back"
         echo ""
         read -p "Enter your choice: " choice
@@ -24,7 +25,12 @@ system_menu() {
             1) source "$PANDA_DIR/modules/system/swap.sh"; manage_swap ;;
             2) source "$PANDA_DIR/modules/system/clean.sh"; clean_junk ;;
             3) source "$PANDA_DIR/modules/system/cron.sh"; manage_cron ;;
-            4) system_info_menu ;;
+            4) source "$PANDA_DIR/modules/system/time.sh"; manage_system_time ;;
+            5)
+                local domain=$(prompt "Enter domain")
+                source "$PANDA_DIR/modules/system/permissions.sh"; fix_web_permissions "$domain"
+                pause
+                ;;
             0) return ;;
             *) log_error "Invalid option"; pause ;;
         esac

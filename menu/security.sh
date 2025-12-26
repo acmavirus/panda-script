@@ -13,6 +13,10 @@ security_menu() {
         echo "  6. SSH Hardening"
         echo "  7. Run Security Scan"
         echo "  8. 🔒 Change SSH Port"
+        echo "  9. 👤 Create SFTP User (Jailed)"
+        echo "  10. 🛡️  Enable WAF (7G)"
+        echo "  11. 🔍  Malware Scanner"
+        echo "  12. 🛡️  WP Security Hardening"
         echo "  0. Back"
         echo ""
         read -p "Enter your choice: " choice
@@ -36,6 +40,31 @@ security_menu() {
             6) source "$PANDA_DIR/security/hardening/ssh_harden.sh"; harden_ssh; pause ;;
             7) source "$PANDA_DIR/security/ddos/detector.sh"; detect_ddos; pause ;;
             8) source "$PANDA_DIR/modules/security/ssh_port.sh"; change_ssh_port ;;
+            9)
+                local domain=$(prompt "Enter domain")
+                local user=$(prompt "Enter SFTP username")
+                local pass=$(prompt "Enter SFTP password")
+                source "$PANDA_DIR/security/sftp.sh"; create_sftp_user "$domain" "$user" "$pass"
+                pause
+                ;;
+            10)
+                local domain=$(prompt "Enter domain")
+                source "$PANDA_DIR/security/waf.sh"; enable_waf_on_site "$domain"
+                pause
+                ;;
+            11)
+                clear
+                echo "1. Install Scanner"
+                echo "2. Scan Website"
+                read -p "Choice: " sc
+                source "$PANDA_DIR/security/malware_scan.sh"
+                if [[ "$sc" == "1" ]]; then install_clamav; 
+                elif [[ "$sc" == "2" ]]; then 
+                    local domain=$(prompt "Enter domain")
+                    scan_web_directory "$domain"
+                fi
+                ;;
+            12) source "$PANDA_DIR/security/wp_fail2ban.sh"; harden_wordpress_security ;;
             0) return ;;
         esac
     done

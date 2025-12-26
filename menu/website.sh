@@ -13,6 +13,8 @@ website_menu() {
         echo "  3. List Websites"
         echo "  4. Install WordPress (Auto)"
         echo "  5. 🌐 WP-CLI Management"
+        echo "  6. 🚀 Node.js Website"
+        echo "  7. 👯 Clone/Staging Website"
         echo "  0. Back"
         echo ""
         read -p "Enter your choice: " choice
@@ -32,11 +34,25 @@ website_menu() {
                 ;;
             4)
                 local domain=$(prompt "Enter domain for WordPress")
-                source "$PANDA_DIR/modules/website/wordpress.sh" 2>/dev/null
+                source "$PANDA_DIR/modules/website/wordpress.sh"
                 install_wordpress "$domain"
                 pause
                 ;;
             5) source "$PANDA_DIR/modules/website/wp_cli.sh"; manage_wp_cli ;;
+            6)
+                local domain=$(prompt "Enter domain")
+                local port=$(prompt "Enter internal port" "3000")
+                source "$PANDA_DIR/modules/website/nodejs.sh"
+                create_node_website "$domain" "$port"
+                pause
+                ;;
+            7)
+                local src=$(prompt "Enter source domain")
+                local target=$(prompt "Enter target domain")
+                source "$PANDA_DIR/modules/website/clone.sh"
+                clone_website "$src" "$target"
+                pause
+                ;;
             0) return ;;
             *) log_error "Invalid option"; pause ;;
         esac

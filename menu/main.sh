@@ -22,6 +22,8 @@ show_main_menu() {
         echo -e "${CYAN}║${NC}  8. 🛡️  Security Center                                      ${CYAN}║${NC}"
         echo -e "${CYAN}║${NC}  9. ⚡ Performance Tuning                                    ${CYAN}║${NC}"
         echo -e "${CYAN}║${NC}  10. ⚙️  System Configuration                                ${CYAN}║${NC}"
+        echo -e "${CYAN}║${NC}  11. 🐋 Docker Management                                   ${CYAN}║${NC}"
+        echo -e "${CYAN}║${NC}  12. ☁️  Cloudflare Management                                 ${CYAN}║${NC}"
         echo -e "${CYAN}║${NC}  0. ❌ Exit                                                   ${CYAN}║${NC}"
         echo -e "${CYAN}╚══════════════════════════════════════════════════════════════╝${NC}"
         echo ""
@@ -38,6 +40,8 @@ show_main_menu() {
             8) source "$PANDA_DIR/menu/security.sh"; security_menu ;;
             9) source "$PANDA_DIR/menu/performance.sh"; performance_menu ;;
             10) source "$PANDA_DIR/menu/system.sh"; system_menu ;;
+            11) source "$PANDA_DIR/menu/docker.sh"; docker_menu ;;
+            12) source "$PANDA_DIR/modules/cloud/cloudflare.sh"; cf_purge_cache ;;
             0) 
                 echo "Goodbye! 🐼"
                 exit 0 

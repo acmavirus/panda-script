@@ -17,6 +17,7 @@ performance_menu() {
         echo "  3. Optimize PHP"
         echo "  4. Optimize MariaDB"
         echo "  5. Kernel Tuning"
+        echo "  6. ⚡ Cache Management"
         echo "  0. Back"
         echo ""
         read -p "Enter your choice: " choice
@@ -33,6 +34,7 @@ performance_menu() {
             3) source "$PANDA_DIR/modules/php/install.sh"; configure_php; pause ;;
             4) source "$PANDA_DIR/modules/mariadb/install.sh"; optimize_mariadb; pause ;;
             5) source "$PANDA_DIR/security/hardening/kernel_harden.sh"; optimize_kernel_network; pause ;;
+            6) source "$PANDA_DIR/modules/performance/cache.sh"; manage_cache ;;
             0) return ;;
             *) log_error "Invalid option"; pause ;;
         esac
