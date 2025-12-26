@@ -12,6 +12,14 @@
 
 ## Quick Install
 
+Lệnh cài đặt nhanh:
+bash
+curl -sO https://raw.githubusercontent.com/acmavirus/panda-script/main/install && bash install
+Hoặc dùng wget:
+
+bash
+wget -qO install https://raw.githubusercontent.com/acmavirus/panda-script/main/install && bash install
+
 ```bash
 bash install
 ```
