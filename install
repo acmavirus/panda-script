@@ -468,16 +468,66 @@ download_from_github() {
 create_cli_command() {
     log_info "Creating CLI command..."
     
-    # Copy panda command
-    if [[ -f "$SCRIPT_DIR/panda" ]]; then
+    # Check if panda script exists in INSTALL_DIR
+    if [[ -f "$INSTALL_DIR/panda" ]]; then
+        cp "$INSTALL_DIR/panda" /usr/local/bin/panda
+    elif [[ -f "$SCRIPT_DIR/panda" ]]; then
         cp "$SCRIPT_DIR/panda" /usr/local/bin/panda
     else
-        # Create symlink to menu
+        # Create panda command from scratch
         cat > /usr/local/bin/panda << 'EOF'
 #!/bin/bash
-source /opt/panda/core/init.sh
-source /opt/panda/menu/main.sh
-show_main_menu
+#================================================
+# Panda Script v2.0 - CLI Management Tool
+#================================================
+
+PANDA_DIR="/opt/panda"
+
+# Source core modules
+source "$PANDA_DIR/core/init.sh" 2>/dev/null
+
+# Handle command line arguments
+case "${1:-}" in
+    -h|--help)
+        echo "Panda Script v2.0 - Server Management Tool"
+        echo ""
+        echo "Usage: panda [command]"
+        echo ""
+        echo "Commands:"
+        echo "  (no args)   Open interactive menu"
+        echo "  status      Show server status"
+        echo "  restart     Restart all services"
+        echo "  backup      Run backup"
+        echo "  update      Check for updates"
+        echo "  -v          Show version"
+        echo "  -h          Show this help"
+        exit 0
+        ;;
+    -v|--version)
+        echo "Panda Script v2.0.0"
+        exit 0
+        ;;
+    status)
+        source "$PANDA_DIR/monitoring/daemon/health_check.sh"
+        quick_status
+        ;;
+    restart)
+        source "$PANDA_DIR/core/service.sh"
+        restart_all_services
+        ;;
+    backup)
+        source "$PANDA_DIR/modules/backup/local.sh"
+        run_backup "all"
+        ;;
+    update)
+        bash "$PANDA_DIR/../update" 2>/dev/null || bash /opt/panda/update 2>/dev/null
+        ;;
+    *)
+        # Open main menu
+        source "$PANDA_DIR/menu/main.sh"
+        show_main_menu
+        ;;
+esac
 EOF
     fi
     
