@@ -119,6 +119,88 @@ wait_for_dpkg_lock() {
 }
 
 #------------------------------------------------
+# Check Existing Installation
+#------------------------------------------------
+check_existing_install() {
+    if [[ -d "$INSTALL_DIR" ]] || [[ -f "/usr/local/bin/panda" ]]; then
+        echo ""
+        log_warning "Panda Script is already installed!"
+        echo ""
+        echo "Options:"
+        echo "  1) Upgrade/Reinstall (keep data & configs)"
+        echo "  2) Complete uninstall & fresh install"
+        echo "  0) Cancel"
+        echo ""
+        read -p "Choose [1]: " reinstall_choice
+        reinstall_choice=${reinstall_choice:-1}
+        
+        case $reinstall_choice in
+            1)
+                log_info "Upgrading existing installation..."
+                ;;
+            2)
+                uninstall_panda
+                ;;
+            0)
+                log_info "Installation cancelled"
+                exit 0
+                ;;
+            *)
+                log_info "Upgrading existing installation..."
+                ;;
+        esac
+    fi
+}
+
+#------------------------------------------------
+# Uninstall Panda Script
+#------------------------------------------------
+uninstall_panda() {
+    echo ""
+    log_warning "=== COMPLETE UNINSTALL ==="
+    echo ""
+    echo "This will remove:"
+    echo "  • Panda Script files (/opt/panda)"
+    echo "  • CLI command (/usr/local/bin/panda)"
+    echo "  • Systemd services (panda-monitor)"
+    echo "  • Cron jobs"
+    echo ""
+    echo -e "${RED}WARNING: All Panda data, logs, and configs will be DELETED!${NC}"
+    echo ""
+    read -p "Type 'UNINSTALL' to confirm: " confirm_uninstall
+    
+    if [[ "$confirm_uninstall" != "UNINSTALL" ]]; then
+        log_info "Uninstall cancelled"
+        exit 0
+    fi
+    
+    log_info "Uninstalling Panda Script..."
+    
+    # Stop services
+    systemctl stop panda-monitor 2>/dev/null
+    systemctl disable panda-monitor 2>/dev/null
+    rm -f /etc/systemd/system/panda-monitor.service
+    systemctl daemon-reload
+    
+    # Remove cron jobs
+    crontab -l 2>/dev/null | grep -v "panda" | crontab -
+    
+    # Remove CLI command
+    rm -f /usr/local/bin/panda
+    
+    # Remove installation directory
+    rm -rf "$INSTALL_DIR"
+    
+    # Remove any residual files
+    rm -rf /var/log/panda 2>/dev/null
+    
+    log_success "Panda Script completely uninstalled!"
+    echo ""
+    log_info "Starting fresh installation..."
+    echo ""
+}
+
+#------------------------------------------------
 # Banner
 #------------------------------------------------
 show_banner() {
@@ -280,49 +362,20 @@ create_directories() {
 }
 
 #------------------------------------------------
-# Copy Scripts
+# Copy Scripts (or Download from GitHub)
 #------------------------------------------------
 copy_scripts() {
     log_info "Installing Panda Script files..."
     
-    # Copy core files
-    if [[ -d "$SCRIPT_DIR/core" ]]; then
-        cp -r "$SCRIPT_DIR/core/"* "$INSTALL_DIR/core/"
-    fi
-    
-    # Copy security files
-    if [[ -d "$SCRIPT_DIR/security" ]]; then
-        cp -r "$SCRIPT_DIR/security/"* "$INSTALL_DIR/security/"
-    fi
-    
-    # Copy monitoring files
-    if [[ -d "$SCRIPT_DIR/monitoring" ]]; then
-        cp -r "$SCRIPT_DIR/monitoring/"* "$INSTALL_DIR/monitoring/"
-    fi
-    
-    # Copy performance files
-    if [[ -d "$SCRIPT_DIR/performance" ]]; then
-        cp -r "$SCRIPT_DIR/performance/"* "$INSTALL_DIR/performance/"
-    fi
-    
-    # Copy modules
-    if [[ -d "$SCRIPT_DIR/modules" ]]; then
-        cp -r "$SCRIPT_DIR/modules/"* "$INSTALL_DIR/modules/"
-    fi
-    
-    # Copy menu files
-    if [[ -d "$SCRIPT_DIR/menu" ]]; then
-        cp -r "$SCRIPT_DIR/menu/"* "$INSTALL_DIR/menu/"
-    fi
-    
-    # Copy config files
-    if [[ -d "$SCRIPT_DIR/config" ]]; then
-        cp -r "$SCRIPT_DIR/config/"* "$INSTALL_DIR/config/" 2>/dev/null || mkdir -p "$INSTALL_DIR/config"
-    fi
-    
-    # Copy templates
-    if [[ -d "$SCRIPT_DIR/templates" ]]; then
-        cp -r "$SCRIPT_DIR/templates/"* "$INSTALL_DIR/templates/"
+    # Check if running from full repo or just the install script
+    if [[ -d "$SCRIPT_DIR/core" && -d "$SCRIPT_DIR/menu" ]]; then
+        # Running from cloned repo - copy files
+        log_info "Installing from local files..."
+        copy_local_files
+    else
+        # Running from curl - need to download from GitHub
+        log_info "Downloading from GitHub..."
+        download_from_github
     fi
     
     # Make all scripts executable
@@ -330,6 +383,84 @@ copy_scripts() {
     
     log_success "Script files installed"
 }
+
+#------------------------------------------------
+# Copy Local Files
+#------------------------------------------------
+copy_local_files() {
+    # Copy core files
+    [[ -d "$SCRIPT_DIR/core" ]] && cp -r "$SCRIPT_DIR/core/"* "$INSTALL_DIR/core/"
+    
+    # Copy security files
+    [[ -d "$SCRIPT_DIR/security" ]] && cp -r "$SCRIPT_DIR/security/"* "$INSTALL_DIR/security/"
+    
+    # Copy monitoring files
+    [[ -d "$SCRIPT_DIR/monitoring" ]] && cp -r "$SCRIPT_DIR/monitoring/"* "$INSTALL_DIR/monitoring/"
+    
+    # Copy performance files
+    [[ -d "$SCRIPT_DIR/performance" ]] && cp -r "$SCRIPT_DIR/performance/"* "$INSTALL_DIR/performance/"
+    
+    # Copy modules
+    [[ -d "$SCRIPT_DIR/modules" ]] && cp -r "$SCRIPT_DIR/modules/"* "$INSTALL_DIR/modules/"
+    
+    # Copy menu files
+    [[ -d "$SCRIPT_DIR/menu" ]] && cp -r "$SCRIPT_DIR/menu/"* "$INSTALL_DIR/menu/"
+    
+    # Copy config files
+    [[ -d "$SCRIPT_DIR/config" ]] && cp -r "$SCRIPT_DIR/config/"* "$INSTALL_DIR/config/" 2>/dev/null
+    
+    # Copy templates
+    [[ -d "$SCRIPT_DIR/templates" ]] && cp -r "$SCRIPT_DIR/templates/"* "$INSTALL_DIR/templates/"
+    
+    # Copy main scripts
+    [[ -f "$SCRIPT_DIR/panda" ]] && cp "$SCRIPT_DIR/panda" "$INSTALL_DIR/"
+    [[ -f "$SCRIPT_DIR/update" ]] && cp "$SCRIPT_DIR/update" "$INSTALL_DIR/"
+}
+
+#------------------------------------------------
+# Download from GitHub
+#------------------------------------------------
+download_from_github() {
+    local GITHUB_REPO="acmavirus/panda-script"
+    local GITHUB_BRANCH="main"
+    local TMP_DIR="/tmp/panda-install-$$"
+    
+    log_info "Downloading Panda Script from GitHub..."
+    
+    # Clean up tmp dir
+    rm -rf "$TMP_DIR"
+    mkdir -p "$TMP_DIR"
+    
+    # Try git clone first (faster, gets full repo)
+    if command -v git &>/dev/null; then
+        log_info "Using git clone..."
+        if git clone --depth 1 "https://github.com/${GITHUB_REPO}.git" "$TMP_DIR/panda-script" &>/dev/null; then
+            SCRIPT_DIR="$TMP_DIR/panda-script"
+            copy_local_files
+            rm -rf "$TMP_DIR"
+            return 0
+        fi
+    fi
+    
+    # Fallback: Download ZIP archive
+    log_info "Downloading ZIP archive..."
+    local ZIP_URL="https://github.com/${GITHUB_REPO}/archive/refs/heads/${GITHUB_BRANCH}.zip"
+    
+    if curl -sL "$ZIP_URL" -o "$TMP_DIR/panda.zip"; then
+        unzip -q "$TMP_DIR/panda.zip" -d "$TMP_DIR"
+        SCRIPT_DIR="$TMP_DIR/panda-script-${GITHUB_BRANCH}"
+        copy_local_files
+        rm -rf "$TMP_DIR"
+        return 0
+    fi
+    
+    log_error "Failed to download Panda Script from GitHub"
+    log_info "Please check your internet connection and try again"
+    log_info "Or clone manually: git clone https://github.com/${GITHUB_REPO}.git && cd panda-script && bash install"
+    exit 1
+}
+
+
 
 #------------------------------------------------
 # Create CLI Command
@@ -745,6 +876,7 @@ show_completion() {
 main() {
     show_banner
     check_root
+    check_existing_install
     detect_os
     check_requirements
     install_dependencies
