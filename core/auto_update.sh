@@ -8,7 +8,7 @@
 PANDA_DIR="${PANDA_DIR:-/opt/panda}"
 source "$PANDA_DIR/core/init.sh" 2>/dev/null
 
-VERSION_URL="https://api.github.com/repos/panda-script/panda-script/releases/latest"
+VERSION_URL="https://api.github.com/repos/acmavirus/panda-script/releases/latest"
 UPDATE_LOG="$PANDA_LOG_DIR/auto_update.log"
 
 log_update() {
