@@ -7,9 +7,7 @@ ssl_menu() {
         print_header "🔒 SSL/HTTPS Management"
         echo "  1. Obtain SSL Certificate"
         echo "  2. Renew All Certificates"
-        echo "  3. Check Certificate Status"
-        echo "  4. List Certificates"
-        echo "  5. Revoke Certificate"
+        echo "  3. 🔍 Check SSL Expiry"
         echo "  0. Back"
         echo ""
         read -p "Enter your choice: " choice
