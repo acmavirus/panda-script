@@ -10,25 +10,25 @@ database_menu() {
         echo "  3. List Databases"
         echo "  4. Backup Database"
         echo "  5. Restore Database"
+        echo "  6. Configure MySQL Credentials"
         echo "  0. Back"
         echo ""
         read -p "Enter your choice: " choice
         
+        source "$PANDA_DIR/modules/mariadb/install.sh"
+        
         case $choice in
             1)
-                source "$PANDA_DIR/modules/mariadb/install.sh"
                 local db_name=$(prompt "Database name")
                 create_database "$db_name"
                 pause
                 ;;
             2)
-                source "$PANDA_DIR/modules/mariadb/install.sh"
                 local db_name=$(prompt "Database to delete")
                 delete_database "$db_name"
                 pause
                 ;;
             3)
-                source "$PANDA_DIR/modules/mariadb/install.sh"
                 list_databases
                 pause
                 ;;
@@ -42,6 +42,10 @@ database_menu() {
                 source "$PANDA_DIR/modules/backup/local.sh"
                 local file=$(prompt "Backup file path")
                 restore_backup "$file"
+                pause
+                ;;
+            6)
+                configure_mysql_credentials
                 pause
                 ;;
             0) return ;;
