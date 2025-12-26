@@ -10,7 +10,7 @@ show_main_menu() {
     while true; do
         clear
         echo -e "${CYAN}╔══════════════════════════════════════════════════════════════╗${NC}"
-        echo -e "${CYAN}║          🐼 Panda Script v2.0 - Server Management            ║${NC}"
+        echo -e "${CYAN}║          🐼 Panda Script v2.2 - Server Management            ║${NC}"
         echo -e "${CYAN}╠══════════════════════════════════════════════════════════════╣${NC}"
         echo -e "${CYAN}║${NC}  1. 🌐 Website Management                                    ${CYAN}║${NC}"
         echo -e "${CYAN}║${NC}  2. 📊 Database Management                                   ${CYAN}║${NC}"
@@ -24,6 +24,7 @@ show_main_menu() {
         echo -e "${CYAN}║${NC}  10. ⚙️  System Configuration                                ${CYAN}║${NC}"
         echo -e "${CYAN}║${NC}  11. 🐋 Docker Management                                   ${CYAN}║${NC}"
         echo -e "${CYAN}║${NC}  12. ☁️  Cloudflare Management                                 ${CYAN}║${NC}"
+        echo -e "${CYAN}║${NC}  13. 👨‍💻 Developer Tools (DevXP)                                ${CYAN}║${NC}"
         echo -e "${CYAN}║${NC}  0. ❌ Exit                                                   ${CYAN}║${NC}"
         echo -e "${CYAN}╚══════════════════════════════════════════════════════════════╝${NC}"
         echo ""
@@ -42,6 +43,7 @@ show_main_menu() {
             10) source "$PANDA_DIR/menu/system.sh"; system_menu ;;
             11) source "$PANDA_DIR/menu/docker.sh"; docker_menu ;;
             12) source "$PANDA_DIR/modules/cloud/cloudflare.sh"; cf_purge_cache ;;
+            13) source "$PANDA_DIR/menu/developer.sh"; developer_menu ;;
             0) 
                 echo "Goodbye! 🐼"
                 exit 0 
