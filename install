@@ -353,6 +353,8 @@ create_directories() {
     mkdir -p "$INSTALL_DIR"/modules/mariadb/templates
     mkdir -p "$INSTALL_DIR"/modules/php/templates
     mkdir -p "$INSTALL_DIR"/templates/alerts
+    mkdir -p "$INSTALL_DIR"/tests
+    mkdir -p "$INSTALL_DIR"/changelog
     mkdir -p "$INSTALL_DIR"/data/{db,cache,logs,tmp}
     
     chmod 755 "$INSTALL_DIR"
@@ -399,6 +401,8 @@ copy_local_files() {
     [[ -d "$SCRIPT_DIR/menu" ]] && cp -r "$SCRIPT_DIR/menu/." "$INSTALL_DIR/menu/" 2>/dev/null || true
     [[ -d "$SCRIPT_DIR/config" ]] && cp -r "$SCRIPT_DIR/config/." "$INSTALL_DIR/config/" 2>/dev/null || true
     [[ -d "$SCRIPT_DIR/templates" ]] && cp -r "$SCRIPT_DIR/templates/." "$INSTALL_DIR/templates/" 2>/dev/null || true
+    [[ -d "$SCRIPT_DIR/tests" ]] && cp -r "$SCRIPT_DIR/tests/." "$INSTALL_DIR/tests/" 2>/dev/null || true
+    [[ -d "$SCRIPT_DIR/changelog" ]] && cp -r "$SCRIPT_DIR/changelog/." "$INSTALL_DIR/changelog/" 2>/dev/null || true
     
     # Copy main scripts
     [[ -f "$SCRIPT_DIR/panda" ]] && cp "$SCRIPT_DIR/panda" "$INSTALL_DIR/" 2>/dev/null || true
