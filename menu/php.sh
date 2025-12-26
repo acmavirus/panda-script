@@ -70,6 +70,7 @@ system_menu() {
         echo "  3. Change SSH Port"
         echo "  4. Restart All Services"
         echo "  5. Update Panda Script"
+        echo "  6. Configure Auto-Update"
         echo "  0. Back"
         echo ""
         read -p "Enter your choice: " choice
@@ -96,6 +97,45 @@ system_menu() {
                 ;;
             4) restart_all_services; pause ;;
             5) bash "$PANDA_DIR/../update"; pause ;;
+            6) auto_update_menu ;;
+            0) return ;;
+        esac
+    done
+}
+
+auto_update_menu() {
+    while true; do
+        clear
+        print_header "🔄 Auto-Update Configuration"
+        
+        source "$PANDA_DIR/core/auto_update.sh"
+        show_auto_update_status
+        
+        echo ""
+        echo "  1. Enable Auto-Update (Notify Only)"
+        echo "  2. Enable Auto-Update (Auto Install)"
+        echo "  3. Disable Auto-Update"
+        echo "  4. Check for Updates Now"
+        echo "  0. Back"
+        echo ""
+        read -p "Enter your choice: " choice
+        
+        case $choice in
+            1) enable_auto_update "notify"; pause ;;
+            2) enable_auto_update "install"; pause ;;
+            3) disable_auto_update; pause ;;
+            4) 
+                local latest=$(check_for_updates)
+                if [[ -n "$latest" ]]; then
+                    echo "New version available: $latest"
+                    if prompt_yn "Install now?"; then
+                        bash "$PANDA_DIR/../update"
+                    fi
+                else
+                    echo "You are on the latest version"
+                fi
+                pause
+                ;;
             0) return ;;
         esac
     done
