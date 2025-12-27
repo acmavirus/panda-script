@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/acmavirus/panda-script/v3/internal/system"
-	_ "modernc.org/sqlite"
 )
 
 type Database struct {
@@ -69,7 +68,9 @@ func listMySQLDatabases() ([]Database, error) {
 	lines := strings.Split(strings.TrimSpace(out), "\n")
 	var dbs []Database
 	for i, line := range lines {
-		if i == 0 { continue } // Skip header
+		if i == 0 {
+			continue
+		} // Skip header
 		line = strings.TrimSpace(line)
 		if line == "" || line == "information_schema" || line == "mysql" || line == "performance_schema" || line == "sys" {
 			continue
@@ -94,7 +95,7 @@ func CreateDatabase(name, dbType string) error {
 	if filepath.Ext(name) != ".db" {
 		name += ".db"
 	}
-	
+
 	path := filepath.Join(dbDir, name)
 	if _, err := os.Stat(path); err == nil {
 		return fmt.Errorf("database already exists")
@@ -138,15 +139,15 @@ func ExecuteQuery(dbName, dbType, query string) ([]map[string]interface{}, error
 		if err != nil {
 			return nil, err
 		}
-		
+
 		lines := strings.Split(strings.TrimSpace(out), "\n")
 		if len(lines) == 0 {
 			return []map[string]interface{}{}, nil
 		}
-		
+
 		headers := strings.Split(lines[0], "\t")
 		var results []map[string]interface{}
-		
+
 		for i := 1; i < len(lines); i++ {
 			values := strings.Split(lines[i], "\t")
 			row := make(map[string]interface{})
