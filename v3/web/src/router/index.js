@@ -11,7 +11,7 @@ import Databases from '../views/Databases.vue'
 import Settings from '../views/Settings.vue'
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHistory('/panda/'),
   routes: [
     {
       path: '/',
@@ -65,7 +65,7 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
   const authStore = useAuthStore()
-  
+
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     next('/login')
   } else if (to.path === '/login' && authStore.isAuthenticated) {
