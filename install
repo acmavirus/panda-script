@@ -64,7 +64,7 @@ User=root
 WorkingDirectory=$INSTALL_DIR
 ExecStart=$INSTALL_DIR/panda
 Restart=always
-Environment=PANDA_PORT=8888
+Environment=PANDA_PORT=8080
 
 [Install]
 WantedBy=multi-user.target
@@ -79,7 +79,7 @@ PUBLIC_IP=$(curl -s https://ifconfig.me || echo "VPS_IP")
 
 echo -e "${GREEN}════════════════════════════════════════════════${NC}"
 echo -e "${GREEN}✅ Panda Panel v3.0.0 installed successfully!${NC}"
-echo -e "${BLUE}🚀 Web Dashboard: http://${PUBLIC_IP}:8888/panda${NC}"
+echo -e "${BLUE}🚀 Web Dashboard: http://${PUBLIC_IP}:8080/panda${NC}"
 echo -e "${BLUE}🔑 Default Login: admin / admin${NC}"
 echo -e "${YELLOW}💡 Tip: Use 'panda' command for CLI tools.${NC}"
 echo -e "${GREEN}════════════════════════════════════════════════${NC}"
