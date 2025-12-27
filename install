@@ -25,25 +25,34 @@ fi
 # Detect Architecture
 ARCH=$(uname -m)
 case $ARCH in
-    x86_64) BINARY_URL="https://github.com/acmavirus/panda-script/raw/main/v3/panda-linux" ;;
+    x86_64) BINARY_URL="https://raw.githubusercontent.com/acmavirus/panda-script/main/v3/panda-linux" ;;
     aarch64) echo -e "${RED}ARM64 support coming soon. Currently only x86_64 is supported.${NC}"; exit 1 ;;
     *) echo -e "${RED}Unsupported architecture: $ARCH${NC}"; exit 1 ;;
 esac
 
 INSTALL_DIR="/opt/panda"
-echo -e "${BLUE}[1/4] Creating directories...${NC}"
+echo -e "${BLUE}[1/4] Installing dependencies...${NC}"
+if command -v apt-get &>/dev/null; then
+    apt-get update && apt-get install -y curl sqlite3
+elif command -v dnf &>/dev/null; then
+    dnf install -y curl sqlite || dnf install -y curl sqlite3
+fi
+
+echo -e "${BLUE}[2/4] Creating directories...${NC}"
 mkdir -p "$INSTALL_DIR/internal/appstore"
 mkdir -p "$INSTALL_DIR/data"
 mkdir -p "$INSTALL_DIR/logs"
+mkdir -p "$INSTALL_DIR/databases"
+mkdir -p "$INSTALL_DIR/backups"
 
-echo -e "${BLUE}[2/4] Downloading Panda binary and assets...${NC}"
+echo -e "${BLUE}[3/4] Downloading Panda binary and assets...${NC}"
 curl -sL "$BINARY_URL" -o "$INSTALL_DIR/panda"
 curl -sL "https://github.com/acmavirus/panda-script/raw/main/v3/internal/appstore/apps.yaml" -o "$INSTALL_DIR/internal/appstore/apps.yaml"
 
 chmod +x "$INSTALL_DIR/panda"
 ln -sf "$INSTALL_DIR/panda" /usr/local/bin/panda
 
-echo -e "${BLUE}[3/4] Setting up systemd service...${NC}"
+echo -e "${BLUE}[4/4] Setting up systemd service...${NC}"
 cat > /etc/systemd/system/panda.service <<EOF
 [Unit]
 Description=Panda Panel v3
