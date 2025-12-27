@@ -73,5 +73,79 @@ func RegisterRoutes(r *gin.RouterGroup) {
 			logsGroup.GET("/", ListLogsHandler)
 			logsGroup.GET("/read", ReadLogHandler)
 		}
+
+		// Backup
+		backupGroup := protected.Group("/backup")
+		{
+			backupGroup.GET("/", ListBackupsAPIHandler)
+			backupGroup.POST("/website/:domain", BackupWebsiteHandler)
+			backupGroup.POST("/database/:name", BackupDatabaseAPIHandler)
+			backupGroup.POST("/full", BackupAllHandler)
+			backupGroup.POST("/restore", RestoreBackupHandler)
+			backupGroup.DELETE("/cleanup", CleanupBackupsHandler)
+		}
+
+		// SSL
+		sslGroup := protected.Group("/ssl")
+		{
+			sslGroup.GET("/", ListCertificatesHandler)
+			sslGroup.POST("/obtain", ObtainCertificateHandler)
+			sslGroup.POST("/renew/:domain", RenewCertificateHandler)
+			sslGroup.POST("/renew-all", RenewAllCertificatesHandler)
+			sslGroup.GET("/check/:domain", CheckCertExpiryHandler)
+			sslGroup.DELETE("/:domain", RevokeCertificateHandler)
+		}
+
+		// PHP
+		phpGroup := protected.Group("/php")
+		{
+			phpGroup.GET("/versions", ListPHPVersionsHandler)
+			phpGroup.POST("/install", InstallPHPHandler)
+			phpGroup.POST("/switch", SwitchPHPHandler)
+			phpGroup.GET("/config/:version", GetPHPConfigHandler)
+			phpGroup.PUT("/config/:version", UpdatePHPConfigHandler)
+			phpGroup.POST("/restart/:version", RestartPHPFPMHandler)
+		}
+
+		// Nginx
+		nginxGroup := protected.Group("/nginx")
+		{
+			nginxGroup.GET("/vhosts", ListVhostsHandler)
+			nginxGroup.POST("/vhosts", CreateVhostHandler)
+			nginxGroup.GET("/vhosts/:domain", GetVhostHandler)
+			nginxGroup.DELETE("/vhosts/:domain", DeleteVhostHandler)
+			nginxGroup.POST("/ssl/:domain", EnableSSLVhostHandler)
+			nginxGroup.DELETE("/ssl/:domain", DisableSSLVhostHandler)
+			nginxGroup.POST("/test", TestNginxConfigHandler)
+			nginxGroup.POST("/reload", ReloadNginxHandler)
+			nginxGroup.GET("/status", NginxStatusHandler)
+		}
+
+		// Security
+		securityGroup := protected.Group("/security")
+		{
+			securityGroup.GET("/firewall", GetFirewallStatusHandler)
+			securityGroup.POST("/firewall/enable", EnableFirewallHandler)
+			securityGroup.POST("/firewall/disable", DisableFirewallHandler)
+			securityGroup.GET("/firewall/rules", ListFirewallRulesHandler)
+			securityGroup.POST("/whitelist", WhitelistIPHandler)
+			securityGroup.POST("/blacklist", BlacklistIPHandler)
+			securityGroup.DELETE("/rule/:id", DeleteFirewallRuleHandler)
+			securityGroup.GET("/ssh-port", GetSSHPortHandler)
+			securityGroup.PUT("/ssh-port", ChangeSSHPortHandler)
+		}
+
+		// Services
+		servicesGroup := protected.Group("/services")
+		{
+			servicesGroup.GET("/", ListServicesHandler)
+			servicesGroup.GET("/:name", GetServiceStatusHandler)
+			servicesGroup.POST("/:name/start", StartServiceHandler)
+			servicesGroup.POST("/:name/stop", StopServiceHandler)
+			servicesGroup.POST("/:name/restart", RestartServiceHandler)
+			servicesGroup.POST("/:name/enable", EnableServiceHandler)
+			servicesGroup.POST("/:name/disable", DisableServiceHandler)
+			servicesGroup.GET("/:name/logs", GetServiceLogsHandler)
+		}
 	}
 }
