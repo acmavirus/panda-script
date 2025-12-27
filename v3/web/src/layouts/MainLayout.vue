@@ -1,9 +1,12 @@
 <script setup>
-import { LayoutDashboard, Globe, Database, HardDrive, Terminal, Settings, Bell, Search, User, Activity, LogOut } from 'lucide-vue-next'
+import { onMounted } from 'vue'
+import { LayoutDashboard, Globe, Database, HardDrive, Terminal, Settings, Bell, Search, User, Activity, LogOut, Server, Code, Lock, Shield, Archive, Cpu, Users, Store, Stethoscope, Wrench, Sun, Moon } from 'lucide-vue-next'
 import { useAuthStore } from '../stores/auth'
+import { useThemeStore } from '../stores/theme'
 import { useRouter } from 'vue-router'
 
 const authStore = useAuthStore()
+const themeStore = useThemeStore()
 const router = useRouter()
 
 const menuItems = [
@@ -13,6 +16,16 @@ const menuItems = [
   { icon: HardDrive, label: 'FileManager', path: '/files' },
   { icon: Activity, label: 'Docker', path: '/docker' },
   { icon: Terminal, label: 'Terminal', path: '/terminal' },
+  { icon: Server, label: 'Services', path: '/services' },
+  { icon: Cpu, label: 'Processes', path: '/processes' },
+  { icon: Code, label: 'PHP', path: '/php' },
+  { icon: Lock, label: 'SSL', path: '/ssl' },
+  { icon: Shield, label: 'Security', path: '/security' },
+  { icon: Archive, label: 'Backup', path: '/backup' },
+  { icon: Store, label: 'App Store', path: '/apps' },
+  { icon: Wrench, label: 'Tools', path: '/tools' },
+  { icon: Stethoscope, label: 'Health', path: '/health' },
+  { icon: Users, label: 'Users', path: '/users' },
   { icon: Settings, label: 'Settings', path: '/settings' },
 ]
 
@@ -20,6 +33,10 @@ const handleLogout = () => {
   authStore.logout()
   router.push('/login')
 }
+
+onMounted(() => {
+  themeStore.loadTheme()
+})
 </script>
 
 <template>
@@ -64,6 +81,10 @@ const handleLogout = () => {
         </div>
 
         <div class="flex items-center space-y-0 space-x-4">
+          <button @click="themeStore.toggleTheme" class="p-2.5 rounded-xl hover:bg-white/5 transition-colors" title="Toggle theme">
+            <Sun v-if="themeStore.theme === 'dark'" :size="20" class="text-gray-400" />
+            <Moon v-else :size="20" class="text-gray-400" />
+          </button>
           <button class="p-2.5 rounded-xl hover:bg-white/5 transition-colors relative">
             <Bell :size="20" class="text-gray-400" />
             <span class="absolute top-2.5 right-2.5 w-2 h-2 bg-panda-primary rounded-full border-2 border-panda-dark"></span>

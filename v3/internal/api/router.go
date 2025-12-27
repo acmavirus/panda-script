@@ -147,5 +147,128 @@ func RegisterRoutes(r *gin.RouterGroup) {
 			servicesGroup.POST("/:name/disable", DisableServiceHandler)
 			servicesGroup.GET("/:name/logs", GetServiceLogsHandler)
 		}
+
+		// 2FA
+		twoFAGroup := protected.Group("/2fa")
+		{
+			twoFAGroup.POST("/setup", Setup2FAHandler)
+			twoFAGroup.POST("/verify", Verify2FASetupHandler)
+			twoFAGroup.POST("/disable", Disable2FAHandler)
+		}
+
+		// Login Tokens
+		protected.POST("/auth/login-token", GenerateLoginTokenHandler)
+
+		// IP Whitelist
+		whitelistGroup := protected.Group("/whitelist")
+		{
+			whitelistGroup.GET("/", ListIPWhitelistHandler)
+			whitelistGroup.POST("/", AddIPWhitelistHandler)
+			whitelistGroup.DELETE("/:id", DeleteIPWhitelistHandler)
+			whitelistGroup.POST("/:id/toggle", ToggleIPWhitelistHandler)
+		}
+
+		// Notifications
+		notifGroup := protected.Group("/notifications")
+		{
+			notifGroup.GET("/", ListNotificationsHandler)
+			notifGroup.GET("/unread", GetUnreadCountHandler)
+			notifGroup.POST("/:id/read", MarkNotificationReadHandler)
+			notifGroup.POST("/read-all", MarkAllNotificationsReadHandler)
+		}
+
+		// Users (Multi-User)
+		usersGroup := protected.Group("/users")
+		{
+			usersGroup.GET("/", ListUsersHandler)
+			usersGroup.POST("/", CreateUserHandler)
+			usersGroup.DELETE("/:id", DeleteUserHandler)
+			usersGroup.PUT("/:id/role", UpdateUserRoleHandler)
+		}
+
+		// Processes
+		processGroup := protected.Group("/processes")
+		{
+			processGroup.GET("/", ListProcessesHandler)
+			processGroup.DELETE("/:pid", KillProcessHandler)
+		}
+
+		// App Store
+		appsGroup := protected.Group("/apps")
+		{
+			appsGroup.GET("/", ListAppsHandler)
+			appsGroup.POST("/:slug/install", InstallAppHandler)
+			appsGroup.POST("/:slug/uninstall", UninstallAppHandler)
+		}
+
+		// Archive
+		protected.POST("/files/compress", CompressFilesHandler)
+		protected.POST("/files/extract", ExtractArchiveHandler)
+
+		// WordPress
+		wpGroup := protected.Group("/wordpress")
+		{
+			wpGroup.POST("/install", InstallWordPressHandler)
+			wpGroup.POST("/wpcli/install", InstallWPCLIHandler)
+			wpGroup.POST("/wpcli/execute", ExecuteWPCLIHandler)
+			wpGroup.POST("/clone", CloneWebsiteHandler)
+		}
+
+		// Node.js / PM2
+		nodeGroup := protected.Group("/nodejs")
+		{
+			nodeGroup.POST("/install", InstallNodeJSHandler)
+			nodeGroup.GET("/pm2", ListPM2ProcessesHandler)
+			nodeGroup.POST("/pm2/:name/:action", PM2ActionHandler)
+		}
+
+		// Cache (Redis/Memcached)
+		cacheGroup := protected.Group("/cache")
+		{
+			cacheGroup.POST("/redis/install", InstallRedisHandler)
+			cacheGroup.POST("/memcached/install", InstallMemcachedHandler)
+			cacheGroup.GET("/redis/info", GetRedisInfoHandler)
+		}
+
+		// Cloud Backup (Rclone)
+		rcloneGroup := protected.Group("/rclone")
+		{
+			rcloneGroup.POST("/install", InstallRcloneHandler)
+			rcloneGroup.GET("/remotes", ListRcloneRemotesHandler)
+			rcloneGroup.POST("/sync", SyncToCloudHandler)
+		}
+
+		// Malware Scanner
+		scanGroup := protected.Group("/scan")
+		{
+			scanGroup.POST("/clamav/install", InstallClamAVHandler)
+			scanGroup.POST("/website", ScanWebsiteHandler)
+		}
+
+		// PHP Extensions
+		protected.GET("/php/extensions", ListPHPExtensionsHandler)
+		protected.POST("/php/extensions/install", InstallPHPExtensionHandler)
+
+		// Health Check
+		protected.GET("/health/check", HealthCheckHandler)
+
+		// Auto-Heal
+		healGroup := protected.Group("/autoheal")
+		{
+			healGroup.GET("/config", GetAutoHealConfigHandler)
+			healGroup.POST("/config", UpdateAutoHealConfigHandler)
+			healGroup.POST("/run", RunAutoHealCheckHandler)
+		}
+
+		// Panel SSL
+		protected.POST("/panel/ssl", EnablePanelSSLHandler)
+		protected.GET("/panel/ssl/status", GetPanelSSLStatusHandler)
+
+		// Theme Settings
+		protected.GET("/settings/theme", GetThemeHandler)
+		protected.POST("/settings/theme", SetThemeHandler)
 	}
+
+	// Public routes
+	r.GET("/auth/verify-token", VerifyLoginTokenHandler)
 }

@@ -9,6 +9,16 @@ import Terminal from '../views/Terminal.vue'
 import Websites from '../views/Websites.vue'
 import Databases from '../views/Databases.vue'
 import Settings from '../views/Settings.vue'
+import Services from '../views/Services.vue'
+import PHP from '../views/PHP.vue'
+import SSL from '../views/SSL.vue'
+import Security from '../views/Security.vue'
+import Backup from '../views/Backup.vue'
+import Processes from '../views/Processes.vue'
+import Users from '../views/Users.vue'
+import AppStore from '../views/AppStore.vue'
+import HealthCheck from '../views/HealthCheck.vue'
+import Tools from '../views/Tools.vue'
 
 const router = createRouter({
   history: createWebHistory('/panda/'),
@@ -52,6 +62,56 @@ const router = createRouter({
           path: 'terminal',
           name: 'terminal',
           component: Terminal
+        },
+        {
+          path: 'services',
+          name: 'services',
+          component: Services
+        },
+        {
+          path: 'php',
+          name: 'php',
+          component: PHP
+        },
+        {
+          path: 'ssl',
+          name: 'ssl',
+          component: SSL
+        },
+        {
+          path: 'security',
+          name: 'security',
+          component: Security
+        },
+        {
+          path: 'backup',
+          name: 'backup',
+          component: Backup
+        },
+        {
+          path: 'processes',
+          name: 'processes',
+          component: Processes
+        },
+        {
+          path: 'users',
+          name: 'users',
+          component: Users
+        },
+        {
+          path: 'apps',
+          name: 'apps',
+          component: AppStore
+        },
+        {
+          path: 'health',
+          name: 'health',
+          component: HealthCheck
+        },
+        {
+          path: 'tools',
+          name: 'tools',
+          component: Tools
         }
       ]
     },
@@ -76,3 +136,4 @@ router.beforeEach((to, from, next) => {
 })
 
 export default router
+
