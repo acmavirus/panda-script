@@ -4,12 +4,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-
 func RegisterRoutes(r *gin.RouterGroup) {
-	// Health & Stats
+	// Health
 	r.GET("/health", HealthHandler)
-	r.GET("/system/stats", SystemStatsHandler)
-	
+
 	// Auth
 	r.POST("/auth/login", LoginHandler)
 
@@ -20,7 +18,7 @@ func RegisterRoutes(r *gin.RouterGroup) {
 		protected.GET("/system/stats", SystemStatsHandler)
 		protected.POST("/system/update", UpdateSystemHandler)
 		protected.POST("/user/password", ChangePasswordHandler)
-		
+
 		// Docker
 		dockerGroup := protected.Group("/docker")
 		{
@@ -77,4 +75,3 @@ func RegisterRoutes(r *gin.RouterGroup) {
 		}
 	}
 }
-
