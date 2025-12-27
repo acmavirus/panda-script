@@ -25,6 +25,9 @@ func AuthMiddleware() gin.HandlerFunc {
 			tokenString = c.Query("token")
 		}
 
+		fmt.Printf("Request URL: %s, Token: %s\n", c.Request.URL.String(), tokenString)
+		fmt.Printf("Headers: %v\n", c.Request.Header)
+
 		if tokenString == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization token required"})
 			c.Abort()
