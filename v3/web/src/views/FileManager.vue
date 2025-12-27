@@ -180,36 +180,39 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="p-6 h-full flex flex-col">
+  <div class="p-4 lg:p-6 h-full flex flex-col">
     <!-- Header -->
-    <div class="flex items-center justify-between mb-6">
-      <div class="flex items-center space-x-4">
-        <button @click="goUp" :disabled="currentPath === '/'" 
-                class="p-2 bg-white/5 rounded-lg hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-          <ArrowLeft :size="20" />
-        </button>
-        <div class="text-sm font-mono bg-black/20 px-4 py-2 rounded-lg border border-white/5 w-96 truncate">
-          {{ currentPath }}
+    <div class="flex flex-col gap-4 mb-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div class="flex items-center space-x-3 overflow-hidden">
+          <button @click="goUp" :disabled="currentPath === '/'" 
+                  class="shrink-0 p-2 bg-white/5 rounded-lg hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+            <ArrowLeft :size="18" />
+          </button>
+          <div class="text-[13px] font-mono bg-black/20 px-3 py-2 rounded-lg border border-white/5 truncate flex-1 md:w-96">
+            {{ currentPath }}
+          </div>
         </div>
-      </div>
-      
-      <div class="flex items-center space-x-2">
-        <input type="file" ref="fileInput" multiple class="hidden" @change="handleFileUpload">
-        <button @click="triggerUpload" class="flex items-center space-x-2 px-3 py-2 bg-green-500/10 text-green-400 hover:bg-green-500/20 rounded-lg transition-colors">
-          <Upload :size="18" />
-          <span>Upload</span>
-        </button>
-        <button @click="showRemoteDownloadModal = true" class="flex items-center space-x-2 px-3 py-2 bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 rounded-lg transition-colors">
-          <Download :size="18" />
-          <span>Remote URL</span>
-        </button>
-        <button @click="showNewFolderModal = true" class="flex items-center space-x-2 px-3 py-2 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 rounded-lg transition-colors">
-          <FolderPlus :size="18" />
-          <span>New Folder</span>
-        </button>
-        <button @click="loadFiles(currentPath)" class="p-2 bg-white/5 rounded-lg hover:bg-white/10 transition-colors">
-          <RefreshCw :size="18" />
-        </button>
+        
+        <div class="flex items-center space-x-2 shrink-0 overflow-x-auto pb-2 sm:pb-0">
+          <input type="file" ref="fileInput" multiple class="hidden" @change="handleFileUpload">
+          <button @click="triggerUpload" class="flex items-center space-x-2 px-3 py-2 bg-green-500/10 text-green-400 hover:bg-green-500/20 rounded-lg transition-colors whitespace-nowrap text-xs sm:text-sm">
+            <Upload :size="16" />
+            <span class="hidden sm:inline">Upload</span>
+          </button>
+          <button @click="showRemoteDownloadModal = true" class="flex items-center space-x-2 px-3 py-2 bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 rounded-lg transition-colors whitespace-nowrap text-xs sm:text-sm">
+            <Download :size="16" />
+            <span class="hidden lg:inline">Remote URL</span>
+            <span class="hidden sm:inline lg:hidden">Remote</span>
+          </button>
+          <button @click="showNewFolderModal = true" class="flex items-center space-x-2 px-3 py-2 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 rounded-lg transition-colors whitespace-nowrap text-xs sm:text-sm">
+            <FolderPlus :size="16" />
+            <span class="hidden sm:inline">New Folder</span>
+          </button>
+          <button @click="loadFiles(currentPath)" class="p-2 bg-white/5 rounded-lg hover:bg-white/10 transition-colors shrink-0">
+            <RefreshCw :size="16" :class="{'animate-spin': loading}" />
+          </button>
+        </div>
       </div>
     </div>
 
@@ -219,37 +222,49 @@ onMounted(() => {
     </div>
 
     <!-- File List -->
+    <!-- File List -->
     <div class="flex-1 bg-black/20 border border-white/5 rounded-xl overflow-hidden flex flex-col"
          @dragover.prevent
          @drop.prevent="handleDrop">
-      <div class="grid grid-cols-12 gap-4 p-4 border-b border-white/5 text-xs font-medium text-gray-500 uppercase tracking-wider">
-        <div class="col-span-6">Name</div>
-        <div class="col-span-2">Size</div>
-        <div class="col-span-2">Permissions</div>
-        <div class="col-span-2 text-right">Actions</div>
-      </div>
-
-      <div class="overflow-y-auto flex-1">
-        <div v-if="loading" class="p-8 text-center text-gray-500">Loading...</div>
-        <div v-else-if="files.length === 0" class="p-8 text-center text-gray-500">Folder is empty</div>
-        
-        <div v-for="file in files" :key="file.path" 
-             class="grid grid-cols-12 gap-4 p-3 items-center hover:bg-white/5 transition-colors border-b border-white/5 last:border-0 group cursor-pointer"
-             @dblclick="openItem(file)">
-          <div class="col-span-6 flex items-center space-x-3 overflow-hidden">
-            <Folder v-if="file.is_dir" class="text-yellow-500 shrink-0" :size="20" />
-            <File v-else class="text-blue-400 shrink-0" :size="20" />
-            <span class="truncate text-sm text-gray-200">{{ file.name }}</span>
+      
+      <!-- Horizontal Scroll Wrapper -->
+      <div class="overflow-x-auto flex-1 flex flex-col">
+        <div class="min-w-[750px] flex-1 flex flex-col">
+          <!-- Header -->
+          <div class="grid grid-cols-12 gap-4 p-4 border-b border-white/5 text-xs font-medium text-gray-500 uppercase tracking-wider bg-white/2">
+            <div class="col-span-6">Name</div>
+            <div class="col-span-2">Size</div>
+            <div class="col-span-2">Permissions</div>
+            <div class="col-span-2 text-right">Actions</div>
           </div>
-          <div class="col-span-2 text-sm text-gray-500 font-mono">{{ file.is_dir ? '-' : formatSize(file.size) }}</div>
-          <div class="col-span-2 text-sm text-gray-500 font-mono">{{ file.mode }}</div>
-          <div class="col-span-2 flex items-center justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button @click.stop="openItem(file)" class="p-1.5 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white" title="Edit/Open">
-              <Edit2 :size="16" />
-            </button>
-            <button @click.stop="deleteItem(file)" class="p-1.5 hover:bg-red-500/10 rounded-lg text-gray-400 hover:text-red-500" title="Delete">
-              <Trash2 :size="16" />
-            </button>
+
+          <!-- List Body -->
+          <div class="overflow-y-auto flex-1">
+            <div v-if="loading" class="p-8 text-center text-gray-500 italic">
+              <div class="animate-spin inline-block w-5 h-5 border-2 border-panda-primary border-t-transparent rounded-full mr-2"></div>
+              Loading files...
+            </div>
+            <div v-else-if="files.length === 0" class="p-8 text-center text-gray-500">Folder is empty</div>
+            
+            <div v-for="file in files" :key="file.path" 
+                 class="grid grid-cols-12 gap-4 p-3 items-center hover:bg-white/5 transition-colors border-b border-white/5 last:border-0 group cursor-pointer"
+                 @dblclick="openItem(file)">
+              <div class="col-span-6 flex items-center space-x-3 overflow-hidden">
+                <Folder v-if="file.is_dir" class="text-yellow-500 shrink-0" :size="18" />
+                <File v-else class="text-blue-400 shrink-0" :size="18" />
+                <span class="truncate text-sm text-gray-200">{{ file.name }}</span>
+              </div>
+              <div class="col-span-2 text-[13px] text-gray-500 font-mono">{{ file.is_dir ? '-' : formatSize(file.size) }}</div>
+              <div class="col-span-2 text-[13px] text-gray-500 font-mono">{{ file.mode }}</div>
+              <div class="col-span-2 flex items-center justify-end space-x-2 md:opacity-0 group-hover:opacity-100 transition-opacity pr-2">
+                <button @click.stop="openItem(file)" class="p-1.5 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white" title="Edit/Open">
+                  <Edit2 :size="16" />
+                </button>
+                <button @click.stop="deleteItem(file)" class="p-1.5 hover:bg-red-500/10 rounded-lg text-gray-400 hover:text-red-500" title="Delete">
+                  <Trash2 :size="16" />
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>

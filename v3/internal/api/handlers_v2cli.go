@@ -212,19 +212,56 @@ func InstallNodeJSHandler(c *gin.Context) {
 		return
 	}
 
-	// Install NVM and Node
-	cmds := []string{
-		"curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash",
-		"export NVM_DIR=\"$HOME/.nvm\" && [ -s \"$NVM_DIR/nvm.sh\" ] && . \"$NVM_DIR/nvm.sh\" && nvm install " + req.Version,
-	}
-	for _, cmd := range cmds {
-		system.Execute(cmd)
+	// Sourcing NVM command helper
+	sourceNVM := "export NVM_DIR=\"$HOME/.nvm\" && [ -s \"$NVM_DIR/nvm.sh\" ] && . \"$NVM_DIR/nvm.sh\""
+
+	// 1. Install NVM if not exists
+	if _, err := os.Stat(os.Getenv("HOME") + "/.nvm/nvm.sh"); os.IsNotExist(err) {
+		system.Execute("curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash")
 	}
 
-	// Install PM2 globally
-	system.Execute("npm install -g pm2")
+	// 2. Install Node inside sourced environment
+	installCmd := fmt.Sprintf("%s && nvm install %s && nvm use %s", sourceNVM, req.Version, req.Version)
+	system.Execute(installCmd)
 
-	c.JSON(http.StatusOK, gin.H{"message": "Node.js " + req.Version + " and PM2 installed"})
+	// 3. Install PM2 globally inside sourced environment
+	pm2Cmd := fmt.Sprintf("%s && npm install -g pm2", sourceNVM)
+	system.Execute(pm2Cmd)
+
+	c.JSON(http.StatusOK, gin.H{"message": "Node.js " + req.Version + " and PM2 installed successfully"})
+}
+
+func GetDevToolsStatusHandler(c *gin.Context) {
+	if runtime.GOOS == "windows" {
+		c.JSON(http.StatusOK, gin.H{
+			"wpcli":  false,
+			"nodejs": false,
+			"rclone": false,
+			"clamav": false,
+		})
+		return
+	}
+
+	status := make(map[string]bool)
+
+	// WP-CLI
+	_, err := system.Execute("which wp")
+	status["wpcli"] = (err == nil)
+
+	// Node.js (check via nvm or which node)
+	sourceNVM := "export NVM_DIR=\"$HOME/.nvm\" && [ -s \"$NVM_DIR/nvm.sh\" ] && . \"$NVM_DIR/nvm.sh\""
+	_, err = system.Execute(sourceNVM + " && node -v")
+	status["nodejs"] = (err == nil)
+
+	// Rclone
+	_, err = system.Execute("which rclone")
+	status["rclone"] = (err == nil)
+
+	// ClamAV
+	_, err = system.Execute("which clamscan")
+	status["clamav"] = (err == nil)
+
+	c.JSON(http.StatusOK, status)
 }
 
 func ListPM2ProcessesHandler(c *gin.Context) {

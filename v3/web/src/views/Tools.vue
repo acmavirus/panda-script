@@ -19,7 +19,20 @@ const wpCommand = ref('core version')
 const wpOutput = ref('')
 
 const checkInstalled = async () => {
-  // Check services status
+  // Check main tools status from our new endpoint
+  try {
+    const res = await axios.get('/api/tools/status')
+    const status = res.data || {}
+    tools.value.forEach(t => {
+      if (status[t.id] !== undefined) {
+        t.installed = status[t.id]
+      }
+    })
+  } catch (e) {
+    console.error('Failed to fetch dev tools status', e)
+  }
+
+  // Check redis/memcached specifically via services
   try {
     const res = await axios.get('/api/services/')
     const services = res.data || []
@@ -90,68 +103,93 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="p-8">
-    <div class="flex items-center justify-between mb-8">
+  <div class="p-4 lg:p-8">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
       <div>
-        <h2 class="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-          <Wrench class="text-amber-400" />
-          Dev Tools
+        <h2 class="text-xl lg:text-2xl font-bold text-white tracking-tight flex items-center gap-2">
+          <Wrench class="text-amber-400" :size="24" />
+          Dev Tools & Extensions
         </h2>
-        <p class="text-gray-500 mt-1">Install and manage development tools</p>
+        <p class="text-xs lg:text-sm text-gray-400 mt-1 uppercase tracking-widest font-bold">Enhance your stack</p>
       </div>
+      <button @click="checkInstalled" class="p-3 sm:p-2 bg-white/5 rounded-lg hover:bg-white/10 transition-colors flex items-center justify-center">
+        <RotateCw :size="18" class="text-gray-400" />
+      </button>
     </div>
 
     <!-- Tools Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 mb-8">
       <div v-for="tool in tools" :key="tool.id"
-           class="bg-black/20 border border-white/5 rounded-xl p-4 flex items-center gap-4">
+           class="bg-black/20 border border-white/5 rounded-2xl p-5 flex items-center gap-4 hover:border-amber-500/20 transition-all shadow-xl">
         <div class="flex-1">
-          <div class="font-medium text-white">{{ tool.name }}</div>
-          <div class="text-sm text-gray-500">{{ tool.desc }}</div>
+          <div class="font-bold text-white text-sm lg:text-base">{{ tool.name }}</div>
+          <div class="text-[10px] lg:text-xs text-gray-500 uppercase font-medium tracking-tight mt-0.5">{{ tool.desc }}</div>
         </div>
         <button v-if="!tool.installed" @click="installTool(tool)" :disabled="tool.loading"
-                class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg flex items-center gap-2 disabled:opacity-50">
-          <Loader v-if="tool.loading" :size="16" class="animate-spin" />
-          <Download v-else :size="16" />
+                class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl flex items-center gap-2 disabled:opacity-50 text-xs font-bold transition-all shadow-lg shadow-amber-600/20">
+          <Loader v-if="tool.loading" :size="14" class="animate-spin" />
+          <Download v-else :size="14" />
           Install
         </button>
-        <span v-else class="px-4 py-2 bg-green-500/10 text-green-400 rounded-lg flex items-center gap-2">
-          <CheckCircle :size="16" /> Installed
+        <span v-else class="px-3 py-1.5 bg-green-500/10 text-green-400 rounded-lg flex items-center gap-2 text-[10px] font-black uppercase tracking-widest border border-green-500/20 shadow-lg shadow-green-500/10">
+          <CheckCircle :size="14" /> Ready
         </span>
       </div>
     </div>
 
     <!-- WP-CLI Console -->
-    <div class="bg-black/20 border border-white/5 rounded-xl p-6 mb-8">
-      <h3 class="text-lg font-semibold text-white mb-4">WP-CLI Console</h3>
-      <div class="flex gap-4 mb-4">
-        <input v-model="wpPath" type="text" placeholder="Path to WordPress" 
-               class="flex-1 bg-black/30 border border-white/10 rounded-lg px-4 py-2 text-white font-mono" />
-        <input v-model="wpCommand" type="text" placeholder="wp command" 
-               class="flex-1 bg-black/30 border border-white/10 rounded-lg px-4 py-2 text-white font-mono" />
-        <button @click="runWPCLI" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg">
-          <Play :size="16" />
-        </button>
+    <div class="bg-black/20 border border-white/5 rounded-2xl p-4 lg:p-6 mb-8 shadow-2xl">
+      <h3 class="text-base font-bold text-white mb-4 flex items-center gap-2 uppercase tracking-widest">
+        <Download :size="18" class="text-blue-400" /> WP-CLI Console
+      </h3>
+      <div class="flex flex-col lg:flex-row gap-4 mb-4">
+        <div class="flex-1 space-y-1">
+           <label class="text-[10px] font-bold text-gray-500 uppercase pl-1">Working Directory</label>
+           <input v-model="wpPath" type="text" placeholder="/var/www/domain.com" 
+                  class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-white font-mono text-sm focus:border-blue-500/50 outline-none transition-all" />
+        </div>
+        <div class="flex-1 space-y-1">
+           <label class="text-[10px] font-bold text-gray-500 uppercase pl-1">WP Command (no 'wp' prefix)</label>
+           <div class="relative">
+             <input v-model="wpCommand" type="text" placeholder="plugin list --status=active" 
+                    class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-white font-mono text-sm focus:border-blue-500/50 outline-none transition-all" />
+             <button @click="runWPCLI" class="absolute right-1 top-1 h-8 w-12 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all flex items-center justify-center">
+               <Play :size="14" />
+             </button>
+           </div>
+        </div>
       </div>
-      <pre class="bg-black/30 p-4 rounded-lg text-sm text-gray-300 font-mono max-h-48 overflow-auto">{{ wpOutput || 'Output will appear here...' }}</pre>
+      <div class="relative group">
+        <div class="absolute top-2 right-4 text-[10px] font-bold text-gray-600 uppercase tracking-widest z-10">Output Log</div>
+        <pre class="bg-black/50 p-5 rounded-2xl text-[11px] text-gray-400 font-mono max-h-60 overflow-auto border border-white/5 scrollbar-thin scrollbar-thumb-white/10">{{ wpOutput || 'Wating for command input...' }}</pre>
+      </div>
     </div>
 
     <!-- PHP Extensions -->
-    <div class="bg-black/20 border border-white/5 rounded-xl p-6">
-      <div class="flex items-center justify-between mb-4">
-        <h3 class="text-lg font-semibold text-white">PHP Extensions</h3>
-        <button @click="loadPHPExtensions" class="p-2 bg-white/5 rounded-lg hover:bg-white/10">
+    <div class="bg-black/20 border border-white/5 rounded-2xl p-4 lg:p-6 shadow-2xl">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h3 class="text-base font-bold text-white uppercase tracking-widest">PHP Extensions</h3>
+          <p class="text-[10px] text-gray-500 mt-0.5">Manage modules for current version</p>
+        </div>
+        <button @click="loadPHPExtensions" class="p-2 bg-white/5 rounded-xl hover:bg-white/10 transition-all border border-white/5">
           <RotateCw :size="16" class="text-gray-400" :class="loadingExt ? 'animate-spin' : ''" />
         </button>
       </div>
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
         <div v-for="ext in phpExtensions" :key="ext.name"
-             class="flex items-center justify-between bg-black/30 rounded-lg p-3">
-          <span class="text-white font-mono text-sm">{{ ext.name }}</span>
-          <span v-if="ext.installed" class="text-green-400 text-xs">✓</span>
-          <button v-else @click="installExtension(ext)" class="text-xs text-amber-400 hover:text-amber-300">Install</button>
+             class="flex items-center justify-between bg-black/30 rounded-xl p-3 border border-white/5 hover:border-white/10 transition-all">
+          <div class="flex flex-col">
+            <span class="text-gray-200 font-mono text-xs font-bold">{{ ext.name }}</span>
+            <span class="text-[8px] text-gray-500 uppercase font-black">Module</span>
+          </div>
+          <span v-if="ext.installed" class="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]" title="Active"></span>
+          <button v-else @click="installExtension(ext)" class="px-2 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 text-[10px] font-black rounded-lg uppercase tracking-tighter border border-amber-500/20">
+            Fix
+          </button>
         </div>
       </div>
     </div>
   </div>
+
 </template>

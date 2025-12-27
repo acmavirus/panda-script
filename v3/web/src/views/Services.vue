@@ -55,63 +55,76 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="p-8">
-    <div class="flex items-center justify-between mb-8">
+  <div class="p-4 lg:p-8">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
       <div>
-        <h2 class="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-          <Server class="text-purple-400" />
+        <h2 class="text-xl lg:text-2xl font-bold text-white tracking-tight flex items-center gap-2">
+          <Server class="text-purple-400" :size="24" />
           System Services
         </h2>
-        <p class="text-gray-500 mt-1">Manage system services (nginx, php-fpm, mysql...)</p>
+        <p class="text-xs lg:text-sm text-gray-400 mt-1">Manage nginx, php-fpm, mysql, etc.</p>
       </div>
-      <button @click="fetchServices" class="p-2 bg-white/5 rounded-lg hover:bg-white/10 transition-colors">
-        <RotateCw :size="20" class="text-gray-400" />
+      <button @click="fetchServices" class="sm:p-2 p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-colors flex items-center justify-center gap-2">
+        <RotateCw :size="18" :class="{'animate-spin': loading}" class="text-gray-400" />
+        <span class="sm:hidden text-xs text-gray-400 font-medium font-mono uppercase tracking-widest">Refresh</span>
       </button>
     </div>
 
-    <div v-if="error" class="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl mb-6">
+    <div v-if="error" class="bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-xl mb-6 text-xs">
       {{ error }}
     </div>
 
     <div class="bg-black/20 border border-white/5 rounded-xl overflow-hidden">
-      <div class="grid grid-cols-12 gap-4 p-4 border-b border-white/5 text-xs font-medium text-gray-500 uppercase tracking-wider">
-        <div class="col-span-3">Service</div>
-        <div class="col-span-2">Status</div>
-        <div class="col-span-2">Enabled</div>
-        <div class="col-span-3">Description</div>
-        <div class="col-span-2 text-right">Actions</div>
-      </div>
+      <!-- Horizontal Scroll Wrapper -->
+      <div class="overflow-x-auto">
+        <div class="min-w-[800px]">
+          <!-- Header -->
+          <div class="grid grid-cols-12 gap-4 p-4 border-b border-white/5 text-[10px] lg:text-xs font-medium text-gray-500 uppercase tracking-widest bg-white/2">
+            <div class="col-span-3">Service</div>
+            <div class="col-span-2">Status</div>
+            <div class="col-span-2">Enabled</div>
+            <div class="col-span-3">Description</div>
+            <div class="col-span-2 text-right pr-4">Actions</div>
+          </div>
 
-      <div v-if="loading" class="p-8 text-center text-gray-500">Loading...</div>
-      <div v-else-if="services.length === 0" class="p-8 text-center text-gray-500">No services found</div>
+          <div v-if="loading && services.length === 0" class="p-20 text-center text-gray-500 flex flex-col items-center gap-3">
+            <div class="animate-spin w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full"></div>
+            <p class="text-xs font-mono">Fetching services...</p>
+          </div>
+          <div v-else-if="services.length === 0" class="p-20 text-center text-gray-500 text-sm">No services found</div>
 
-      <div v-for="svc in services" :key="svc.name" 
-           class="grid grid-cols-12 gap-4 p-4 items-center border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors">
-        <div class="col-span-3 font-medium text-white">{{ svc.name }}</div>
-        <div class="col-span-2">
-          <span :class="getStatusColor(svc.status)" class="px-2 py-1 rounded-md text-xs border font-medium uppercase">
-            {{ svc.status }}
-          </span>
-        </div>
-        <div class="col-span-2 text-gray-400">{{ svc.enabled ? 'Yes' : 'No' }}</div>
-        <div class="col-span-3 text-gray-400 text-sm truncate" :title="svc.description">{{ svc.description }}</div>
-        <div class="col-span-2 flex items-center justify-end space-x-2">
-          <button v-if="svc.status !== 'active' && svc.status !== 'running'" @click="serviceAction(svc.name, 'start')" 
-                  class="p-1.5 hover:bg-green-500/10 rounded-lg text-gray-400 hover:text-green-500 transition-colors" title="Start">
-            <Play :size="16" />
-          </button>
-          <button v-if="svc.status === 'active' || svc.status === 'running'" @click="serviceAction(svc.name, 'stop')" 
-                  class="p-1.5 hover:bg-red-500/10 rounded-lg text-gray-400 hover:text-red-500 transition-colors" title="Stop">
-            <Square :size="16" />
-          </button>
-          <button @click="serviceAction(svc.name, 'restart')" 
-                  class="p-1.5 hover:bg-blue-500/10 rounded-lg text-gray-400 hover:text-blue-500 transition-colors" title="Restart">
-            <RotateCw :size="16" />
-          </button>
-          <button @click="viewLogs(svc.name)" 
-                  class="p-1.5 hover:bg-purple-500/10 rounded-lg text-gray-400 hover:text-purple-500 transition-colors" title="Logs">
-            <FileText :size="16" />
-          </button>
+          <div v-for="svc in services" :key="svc.name" 
+               class="grid grid-cols-12 gap-4 p-4 items-center border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors">
+            <div class="col-span-3 font-bold text-gray-200 text-sm flex items-center gap-2">
+               <div class="w-1.5 h-1.5 rounded-full" :class="svc.status === 'active' || svc.status === 'running' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-red-500'"></div>
+               {{ svc.name }}
+            </div>
+            <div class="col-span-2">
+              <span :class="getStatusColor(svc.status)" class="px-2 py-0.5 rounded-md text-[10px] border font-bold uppercase tracking-wide">
+                {{ svc.status }}
+              </span>
+            </div>
+            <div class="col-span-2 text-gray-400 text-xs font-mono">{{ svc.enabled ? 'ENABLED' : 'DISABLED' }}</div>
+            <div class="col-span-3 text-gray-500 text-xs truncate italic" :title="svc.description">{{ svc.description }}</div>
+            <div class="col-span-2 flex items-center justify-end space-x-2 pr-2">
+              <button v-if="svc.status !== 'active' && svc.status !== 'running'" @click="serviceAction(svc.name, 'start')" 
+                      class="p-2 hover:bg-green-500/10 rounded-lg text-gray-500 hover:text-green-500 transition-colors" title="Start">
+                <Play :size="14" />
+              </button>
+              <button v-else @click="serviceAction(svc.name, 'stop')" 
+                      class="p-2 hover:bg-red-500/10 rounded-lg text-gray-500 hover:text-red-500 transition-colors" title="Stop">
+                <Square :size="14" />
+              </button>
+              <button @click="serviceAction(svc.name, 'restart')" 
+                      class="p-2 hover:bg-blue-500/10 rounded-lg text-gray-500 hover:text-blue-500 transition-colors" title="Restart">
+                <RotateCw :size="14" />
+              </button>
+              <button @click="viewLogs(svc.name)" 
+                      class="p-2 hover:bg-purple-500/10 rounded-lg text-gray-400 hover:text-purple-500 transition-colors" title="Logs">
+                <FileText :size="14" />
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

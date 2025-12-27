@@ -89,9 +89,14 @@ type App struct {
 
 func Init() {
 	var err error
-	DB, err = gorm.Open(sqlite.Open("panda.db"), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info),
+
+	// Use absolute path for database
+	dbPath := "/opt/panda/panda.db"
+
+	DB, err = gorm.Open(sqlite.Open(dbPath), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Silent), // Reduce log noise
 	})
+	
 	if err != nil {
 		log.Fatal("Failed to connect to database:", err)
 	}

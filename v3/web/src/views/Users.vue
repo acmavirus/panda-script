@@ -55,8 +55,8 @@ onMounted(fetchUsers)
 </script>
 
 <template>
-  <div class="p-8">
-    <div class="flex items-center justify-between mb-8">
+  <div class="p-4 lg:p-8">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
       <div>
         <h2 class="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
           <Users class="text-cyan-400" />
@@ -64,49 +64,65 @@ onMounted(fetchUsers)
         </h2>
         <p class="text-gray-500 mt-1">Manage panel users and roles</p>
       </div>
-      <button @click="showCreate = true" class="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg flex items-center gap-2">
+      <button @click="showCreate = true" class="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg flex items-center gap-2 text-sm">
         <Plus :size="16" /> Add User
       </button>
     </div>
 
     <div class="bg-black/20 border border-white/5 rounded-xl overflow-hidden">
-      <div class="grid grid-cols-12 gap-4 p-4 border-b border-white/5 text-xs font-medium text-gray-500 uppercase tracking-wider">
-        <div class="col-span-1">ID</div>
-        <div class="col-span-4">Username</div>
-        <div class="col-span-2">Role</div>
-        <div class="col-span-2">2FA</div>
-        <div class="col-span-3 text-right">Actions</div>
-      </div>
+      <!-- Horizontal Scroll Wrapper -->
+      <div class="overflow-x-auto">
+        <div class="min-w-[700px]">
+          <!-- Header -->
+          <div class="grid grid-cols-12 gap-4 p-4 border-b border-white/5 text-xs font-medium text-gray-500 uppercase tracking-wider bg-white/2">
+            <div class="col-span-1">ID</div>
+            <div class="col-span-4">Username</div>
+            <div class="col-span-2">Role</div>
+            <div class="col-span-2 text-center">2FA Status</div>
+            <div class="col-span-3 text-right pr-4">Actions</div>
+          </div>
 
-      <div v-if="loading" class="p-8 text-center text-gray-500">Loading...</div>
-      <div v-else-if="users.length === 0" class="p-8 text-center text-gray-500">No users found</div>
+          <div v-if="loading" class="p-8 text-center text-gray-500 italic">
+            <div class="animate-spin inline-block w-5 h-5 border-2 border-cyan-500 border-t-transparent rounded-full mr-2"></div>
+            Loading users...
+          </div>
+          <div v-else-if="users.length === 0" class="p-8 text-center text-gray-500">No users found</div>
 
-      <div v-for="user in users" :key="user.id" 
-           class="grid grid-cols-12 gap-4 p-4 items-center border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors">
-        <div class="col-span-1 text-gray-500">{{ user.id }}</div>
-        <div class="col-span-4 font-medium text-white flex items-center gap-2">
-          <User :size="16" class="text-gray-400" />
-          {{ user.username }}
-        </div>
-        <div class="col-span-2">
-          <span :class="user.role === 'admin' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' : 'bg-gray-500/10 text-gray-400 border-gray-500/20'"
-                class="px-2 py-1 rounded-md text-xs border font-medium uppercase">
-            {{ user.role }}
-          </span>
-        </div>
-        <div class="col-span-2">
-          <span v-if="user.two_factor_enabled" class="text-green-400">Enabled</span>
-          <span v-else class="text-gray-500">Disabled</span>
-        </div>
-        <div class="col-span-3 flex items-center justify-end space-x-2">
-          <button v-if="user.username !== 'admin'" @click="changeRole(user.id, user.role)" 
-                  class="px-2 py-1 text-xs bg-white/5 hover:bg-white/10 rounded text-gray-300">
-            {{ user.role === 'admin' ? 'Demote' : 'Promote' }}
-          </button>
-          <button v-if="user.username !== 'admin'" @click="deleteUser(user.id, user.username)" 
-                  class="p-1.5 hover:bg-red-500/10 rounded text-gray-400 hover:text-red-500">
-            <Trash2 :size="16" />
-          </button>
+          <!-- Table Rows -->
+          <div v-for="user in users" :key="user.id" 
+               class="grid grid-cols-12 gap-4 p-4 items-center border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors">
+            <div class="col-span-1 text-gray-500 font-mono text-xs">#{{ user.id }}</div>
+            <div class="col-span-4 font-medium text-white flex items-center gap-2">
+              <div class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center">
+                <User :size="16" class="text-gray-400" />
+              </div>
+              {{ user.username }}
+            </div>
+            <div class="col-span-2">
+              <span :class="user.role === 'admin' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' : 'bg-gray-500/10 text-gray-400 border-gray-500/20'"
+                    class="px-2 py-1 rounded-md text-[10px] border font-bold uppercase tracking-wide">
+                {{ user.role }}
+              </span>
+            </div>
+            <div class="col-span-2 text-center">
+              <span v-if="user.two_factor_enabled" class="inline-flex items-center gap-1.5 text-xs text-green-400 font-medium">
+                <span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span> Enabled
+              </span>
+              <span v-else class="inline-flex items-center gap-1.5 text-xs text-gray-500">
+                <span class="w-1.5 h-1.5 bg-gray-500 rounded-full"></span> Disabled
+              </span>
+            </div>
+            <div class="col-span-3 flex items-center justify-end space-x-2 pr-2">
+              <button v-if="user.username !== 'admin'" @click="changeRole(user.id, user.role)" 
+                      class="px-3 py-1.5 text-xs bg-white/5 hover:bg-white/10 rounded-lg text-gray-300 transition-colors">
+                {{ user.role === 'admin' ? 'Demote' : 'Promote' }}
+              </button>
+              <button v-if="user.username !== 'admin'" @click="deleteUser(user.id, user.username)" 
+                      class="p-2 hover:bg-red-500/10 rounded-lg text-gray-400 hover:text-red-500 transition-colors">
+                <Trash2 :size="16" />
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

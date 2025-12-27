@@ -245,6 +245,9 @@ func RegisterRoutes(r *gin.RouterGroup) {
 			scanGroup.POST("/website", ScanWebsiteHandler)
 		}
 
+		// Dev Tools Status
+		protected.GET("/tools/status", GetDevToolsStatusHandler)
+
 		// PHP Extensions
 		protected.GET("/php/extensions", ListPHPExtensionsHandler)
 		protected.POST("/php/extensions/install", InstallPHPExtensionHandler)

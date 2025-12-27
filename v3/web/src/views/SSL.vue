@@ -83,62 +83,72 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="p-8">
-    <div class="flex items-center justify-between mb-8">
+  <div class="p-4 lg:p-8">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
       <div>
-        <h2 class="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-          <Lock class="text-green-400" />
+        <h2 class="text-xl lg:text-2xl font-bold text-white tracking-tight flex items-center gap-2">
+          <Lock class="text-green-400" :size="24" />
           SSL Certificates
         </h2>
-        <p class="text-gray-500 mt-1">Manage Let's Encrypt SSL certificates</p>
+        <p class="text-xs lg:text-sm text-gray-500 mt-1 uppercase tracking-widest font-bold">Let's Encrypt CA</p>
       </div>
-      <div class="flex gap-2">
-        <button @click="renewAll" class="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-gray-300 flex items-center gap-2">
-          <RotateCw :size="16" /> Renew All
+      <div class="flex items-center gap-2">
+        <button @click="renewAll" class="flex-1 sm:flex-none px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl text-gray-300 flex items-center justify-center gap-2 text-sm transition-all border border-white/5">
+          <RotateCw :size="16" /> <span class="hidden sm:inline">Renew All</span><span class="sm:hidden">Renew</span>
         </button>
-        <button @click="showObtain = true" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg flex items-center gap-2">
-          <Plus :size="16" /> New Certificate
+        <button @click="showObtain = true" class="flex-1 sm:flex-none px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl flex items-center justify-center gap-2 text-sm transition-all shadow-lg shadow-green-600/20">
+          <Plus :size="16" /> Create
         </button>
       </div>
     </div>
 
-    <div v-if="error" class="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl mb-6">
+    <div v-if="error" class="bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-xl mb-6 text-xs shadow-lg">
       {{ error }}
     </div>
 
     <div class="bg-black/20 border border-white/5 rounded-xl overflow-hidden">
-      <div class="grid grid-cols-12 gap-4 p-4 border-b border-white/5 text-xs font-medium text-gray-500 uppercase tracking-wider">
-        <div class="col-span-3">Domain</div>
-        <div class="col-span-3">Issuer</div>
-        <div class="col-span-2">Expires</div>
-        <div class="col-span-2">Days Left</div>
-        <div class="col-span-2 text-right">Actions</div>
-      </div>
+      <!-- Horizontal Scroll Wrapper -->
+      <div class="overflow-x-auto">
+        <div class="min-w-[850px]">
+          <!-- Header -->
+          <div class="grid grid-cols-12 gap-4 p-4 border-b border-white/5 text-[10px] lg:text-xs font-bold text-gray-500 uppercase tracking-widest bg-white/2">
+            <div class="col-span-3">Domain</div>
+            <div class="col-span-3">Issuer</div>
+            <div class="col-span-2 text-center">Expiry Date</div>
+            <div class="col-span-2 text-center">Remaining</div>
+            <div class="col-span-2 text-right pr-4">Actions</div>
+          </div>
 
-      <div v-if="loading" class="p-8 text-center text-gray-500">Loading...</div>
-      <div v-else-if="certificates.length === 0" class="p-8 text-center text-gray-500">No certificates found</div>
+          <div v-if="loading && certificates.length === 0" class="p-16 text-center text-gray-500 flex flex-col items-center gap-3">
+             <div class="animate-spin w-6 h-6 border-2 border-green-500 border-t-transparent rounded-full"></div>
+             <p class="text-xs font-mono">Scanning certificates...</p>
+          </div>
+          <div v-else-if="certificates.length === 0" class="p-16 text-center text-gray-500 text-sm italic">No SSL certificates found</div>
 
-      <div v-for="cert in certificates" :key="cert.domain" 
-           class="grid grid-cols-12 gap-4 p-4 items-center border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors">
-        <div class="col-span-3 font-medium text-white flex items-center gap-2">
-          <CheckCircle v-if="cert.is_valid" class="text-green-400" :size="16" />
-          <AlertCircle v-else class="text-red-400" :size="16" />
-          {{ cert.domain }}
-        </div>
-        <div class="col-span-3 text-gray-400 truncate">{{ cert.issuer }}</div>
-        <div class="col-span-2 text-gray-400 text-sm">{{ new Date(cert.expires_at).toLocaleDateString() }}</div>
-        <div class="col-span-2">
-          <span :class="getDaysColor(cert.days_left)" class="font-medium">{{ cert.days_left }} days</span>
-        </div>
-        <div class="col-span-2 flex items-center justify-end space-x-2">
-          <button @click="renewCertificate(cert.domain)" 
-                  class="p-1.5 hover:bg-blue-500/10 rounded-lg text-gray-400 hover:text-blue-500 transition-colors" title="Renew">
-            <RotateCw :size="16" />
-          </button>
-          <button @click="revokeCertificate(cert.domain)" 
-                  class="p-1.5 hover:bg-red-500/10 rounded-lg text-gray-400 hover:text-red-500 transition-colors" title="Revoke">
-            <Trash2 :size="16" />
-          </button>
+          <div v-for="cert in certificates" :key="cert.domain" 
+               class="grid grid-cols-12 gap-4 p-4 items-center border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors">
+            <div class="col-span-3 font-bold text-gray-200 flex items-center gap-3">
+              <div :class="cert.is_valid ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]'" class="w-2 h-2 rounded-full shrink-0"></div>
+              <span class="truncate">{{ cert.domain }}</span>
+            </div>
+            <div class="col-span-3 text-gray-400 text-xs truncate italic" :title="cert.issuer">{{ cert.issuer }}</div>
+            <div class="col-span-2 text-center text-gray-500 text-xs font-mono">{{ new Date(cert.expires_at).toLocaleDateString() }}</div>
+            <div class="col-span-2 text-center">
+              <span :class="getDaysColor(cert.days_left)" class="text-xs font-bold font-mono px-2 py-0.5 rounded-md bg-white/5 border border-white/5">
+                {{ cert.days_left }}d
+              </span>
+            </div>
+            <div class="col-span-2 flex items-center justify-end space-x-2 pr-2">
+              <button @click="renewCertificate(cert.domain)" 
+                      class="p-2 hover:bg-blue-500/10 rounded-lg text-gray-500 hover:text-blue-500 transition-colors" title="Renew Individual">
+                <RotateCw :size="16" />
+              </button>
+              <button @click="revokeCertificate(cert.domain)" 
+                      class="p-2 hover:bg-red-500/10 rounded-lg text-gray-500 hover:text-red-500 transition-colors" title="Revoke">
+                <Trash2 :size="16" />
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
