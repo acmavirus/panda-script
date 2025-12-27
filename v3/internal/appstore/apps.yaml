@@ -1,0 +1,35 @@
+apps:
+  - name: Redis
+    description: "Redis is an open source (BSD licensed), in-memory data structure store."
+    image: redis:latest
+    default_port: 6379
+    category: Database
+    install_cmd: "docker run -d --name redis -p 6379:6379 redis:latest"
+
+  - name: MySQL
+    description: "MySQL is a widely used, open-source relational database management system (RDBMS)."
+    image: mysql:latest
+    default_port: 3306
+    category: Database
+    install_cmd: "docker run -d --name mysql -e MYSQL_ROOT_PASSWORD=root -p 3306:3306 mysql:latest"
+
+  - name: PostgreSQL
+    description: "The World's Most Advanced Open Source Relational Database."
+    image: postgres:latest
+    default_port: 5432
+    category: Database
+    install_cmd: "docker run -d --name postgres -e POSTGRES_PASSWORD=root -p 5432:5432 postgres:latest"
+
+  - name: Nginx
+    description: "High Performance Load Balancer, Web Server, & Reverse Proxy."
+    image: nginx:latest
+    default_port: 80
+    category: Web Server
+    install_cmd: "docker run -d --name nginx -p 80:80 nginx:latest"
+
+  - name: MongoDB
+    description: "The application data platform for the era of generated data."
+    image: mongo:latest
+    default_port: 27017
+    category: Database
+    install_cmd: "docker run -d --name mongodb -p 27017:27017 mongo:latest"
