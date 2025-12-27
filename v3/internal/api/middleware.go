@@ -1,7 +1,6 @@
 package api
 
 import (
-	"log"
 	"net/http"
 	"strings"
 
@@ -25,9 +24,6 @@ func AuthMiddleware() gin.HandlerFunc {
 			tokenString = c.Query("token")
 		}
 
-		log.Printf("Request URL: %s, Token: %s\n", c.Request.URL.String(), tokenString)
-		log.Printf("Headers: %v\n", c.Request.Header)
-
 		if tokenString == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization token required"})
 			c.Abort()
@@ -36,7 +32,6 @@ func AuthMiddleware() gin.HandlerFunc {
 
 		claims, err := auth.ValidateToken(tokenString)
 		if err != nil {
-			log.Printf("Auth Error: %v for token: %s\n", err, tokenString)
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
 			c.Abort()
 			return

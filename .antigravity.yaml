@@ -1,0 +1,5 @@
+# Chỉ có hiệu lực khi Agent hoạt động trong thư mục này
+commands:
+  allow_list:
+    - "ssh -o StrictHostKeyChecking=no" # Khớp với đoạn đầu của lệnh trong hình
+  auto_execute: true
