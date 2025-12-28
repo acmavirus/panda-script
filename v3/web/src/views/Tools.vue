@@ -138,11 +138,29 @@ onMounted(() => {
     </div>
 
     <!-- WP-CLI Console -->
-                    class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-white font-mono text-sm focus:border-blue-500/50 outline-none transition-all" />
-             <button @click="runWPCLI" class="absolute right-1 top-1 h-8 w-12 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all flex items-center justify-center">
-               <Play :size="14" />
-             </button>
-           </div>
+    <div class="bg-black/20 border border-white/5 rounded-2xl p-4 lg:p-6 mb-6">
+      <div class="flex items-center gap-3 mb-4">
+        <Wrench :size="18" class="text-blue-500" />
+        <h3 class="text-sm font-bold text-white uppercase tracking-widest">WP-CLI Console</h3>
+      </div>
+      
+      <div class="space-y-4 mb-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="space-y-1.5">
+            <label class="text-[10px] text-gray-500 font-bold uppercase tracking-widest ml-1">Working Directory</label>
+            <input v-model="wpPath" placeholder="/home/example.com/public" 
+                   class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-white font-mono text-sm focus:border-blue-500/50 outline-none transition-all" />
+          </div>
+          <div class="space-y-1.5">
+            <label class="text-[10px] text-gray-500 font-bold uppercase tracking-widest ml-1">Command</label>
+            <div class="relative">
+              <input v-model="wpCommand" @keyup.enter="runWPCLI" placeholder="core version" 
+                     class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-white font-mono text-sm focus:border-blue-500/50 outline-none transition-all" />
+              <button @click="runWPCLI" class="absolute right-1 top-1 h-8 w-12 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all flex items-center justify-center">
+                <Play :size="14" />
+              </button>
+            </div>
+          </div>
         </div>
       </div>
       <div class="relative group">
