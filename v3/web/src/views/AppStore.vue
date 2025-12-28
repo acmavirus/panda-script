@@ -14,7 +14,9 @@ const installingDocker = ref(false)
 const fetchApps = async () => {
   loading.value = true
   try {
-    const res = await axios.get('/api/apps/')
+    const res = await axios.get('/api/apps/', {
+      headers: { Authorization: `Bearer ${authStore.token}` }
+    })
     apps.value = res.data || []
     dockerInstalled.value = true
   } catch (err) {
@@ -31,8 +33,9 @@ const fetchApps = async () => {
 const installDocker = async () => {
   installingDocker.value = true
   try {
-    // Call a simple endpoint or just try to install
-    await axios.post('/api/system/install-docker')
+    await axios.post('/api/system/install-docker', {}, {
+      headers: { Authorization: `Bearer ${authStore.token}` }
+    })
     alert('Docker installed successfully! Refreshing...')
     fetchApps()
   } catch (err) {
@@ -49,7 +52,9 @@ const installApp = async (slug) => {
   }
   installing.value = slug
   try {
-    await axios.post(`/api/apps/${slug}/install`)
+    await axios.post(`/api/apps/${slug}/install`, {}, {
+      headers: { Authorization: `Bearer ${authStore.token}` }
+    })
     fetchApps()
     alert('App installed successfully!')
   } catch (err) {
@@ -68,7 +73,9 @@ const installApp = async (slug) => {
 const uninstallApp = async (slug, name) => {
   if (!confirm(`Uninstall ${name}?`)) return
   try {
-    await axios.post(`/api/apps/${slug}/uninstall`)
+    await axios.post(`/api/apps/${slug}/uninstall`, {}, {
+      headers: { Authorization: `Bearer ${authStore.token}` }
+    })
     fetchApps()
   } catch (err) {
     alert('Failed: ' + (err.response?.data?.error || err.message))
