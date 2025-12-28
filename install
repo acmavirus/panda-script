@@ -107,22 +107,9 @@ else
 fi
 
 #================================================
-# Step 5: Install Docker
+# Step 5: Install additional tools
 #================================================
-echo -e "${BLUE}[5/7] Installing Docker...${NC}"
-if ! command -v docker &>/dev/null; then
-    apt-get install -y docker.io
-    systemctl start docker
-    systemctl enable docker
-    echo -e "${GREEN}✓ Docker installed${NC}"
-else
-    echo -e "${YELLOW}✓ Docker already installed${NC}"
-fi
-
-#================================================
-# Step 6: Install additional tools
-#================================================
-echo -e "${BLUE}[6/7] Installing additional tools...${NC}"
+echo -e "${BLUE}[5/6] Installing additional tools...${NC}"
 
 # Certbot for SSL
 if ! command -v certbot &>/dev/null; then
@@ -145,9 +132,9 @@ if ! command -v wp &>/dev/null; then
 fi
 
 #================================================
-# Step 7: Clone Panda Script & Setup Panel
+# Step 6: Clone Panda Script & Setup Panel
 #================================================
-echo -e "${BLUE}[7/7] Setting up Panda Panel...${NC}"
+echo -e "${BLUE}[6/6] Setting up Panda Panel...${NC}"
 
 # Clone repository
 if [ -d "$INSTALL_DIR" ]; then
@@ -229,7 +216,6 @@ echo -e "${CYAN}📦 Installed Components:${NC}"
 echo -e "   ✓ Nginx (Web Server)"
 echo -e "   ✓ PHP 8.3 + Extensions"
 echo -e "   ✓ MariaDB (MySQL)"
-echo -e "   ✓ Docker"
 echo -e "   ✓ Certbot (SSL)"
 echo -e "   ✓ Composer"
 echo -e "   ✓ WP-CLI"
