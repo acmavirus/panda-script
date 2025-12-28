@@ -72,6 +72,8 @@ func RegisterRoutes(r *gin.RouterGroup) {
 		{
 			logsGroup.GET("/", ListLogsHandler)
 			logsGroup.GET("/read", ReadLogHandler)
+			logsGroup.GET("/access", GetAccessLogsHandler)
+			logsGroup.GET("/security", GetSecurityLogsHandler)
 		}
 
 		// Backup

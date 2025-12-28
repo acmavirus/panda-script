@@ -2,7 +2,8 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { 
   Activity, HardDrive, Database, RefreshCw, Clock, Plus, Wrench, 
-  FileText, ExternalLink, Lock, Globe, ArrowRight, Zap
+  FileText, ExternalLink, Lock, Globe, ArrowRight, Zap, Shield,
+  User, Monitor, Bot, AlertTriangle, CheckCircle, Smartphone
 } from 'lucide-vue-next'
 import axios from 'axios'
 import { useAuthStore } from '../stores/auth'
@@ -27,6 +28,8 @@ const authStore = useAuthStore()
 const router = useRouter()
 const systemStats = ref(null)
 const recentSites = ref([])
+const accessLogs = ref([])
+const securityLogs = ref([])
 const loading = ref(true)
 const refreshing = ref(false)
 let pollingInterval = null
@@ -92,13 +95,17 @@ const fetchStats = async (showRefresh = false) => {
   if (showRefresh) refreshing.value = true
   
   try {
-    const [statsRes, sitesRes] = await Promise.all([
+    const [statsRes, sitesRes, accessRes, securityRes] = await Promise.all([
       axios.get('/api/system/stats'),
-      axios.get('/api/websites/')
+      axios.get('/api/websites/'),
+      axios.get('/api/logs/access?limit=6'),
+      axios.get('/api/logs/security?limit=6')
     ])
     
     systemStats.value = statsRes.data
     recentSites.value = (sitesRes.data || []).slice(0, 5)
+    accessLogs.value = accessRes.data || []
+    securityLogs.value = securityRes.data || []
     
     cpuHistory.value = [...cpuHistory.value.slice(1), statsRes.data.cpu_usage]
     ramHistory.value = [...ramHistory.value.slice(1), statsRes.data.memory.used_percent]
@@ -116,6 +123,12 @@ const formatUptime = (seconds) => {
   const days = Math.floor(seconds / 86400)
   const hours = Math.floor((seconds % 86400) / 3600)
   return days > 0 ? `${days}d ${hours}h` : `${hours}h ${Math.floor((seconds % 3600) / 60)}m`
+}
+
+const formatTime = (timeStr) => {
+  if (!timeStr) return ''
+  const date = new Date(timeStr)
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
 
 // Quick Actions
@@ -146,7 +159,7 @@ const enableSSL = async (domain) => {
 
 onMounted(() => {
   fetchStats()
-  pollingInterval = setInterval(() => fetchStats(false), 5000)
+  pollingInterval = setInterval(() => fetchStats(false), 8000) // Polling every 8 seconds
 })
 
 onUnmounted(() => {
@@ -170,31 +183,6 @@ onUnmounted(() => {
         <RefreshCw :size="16" :class="{ 'animate-spin': refreshing }" />
         <span>Refresh</span>
       </button>
-    </div>
-
-    <!-- Quick Actions (Action-oriented Dashboard) -->
-    <div class="panda-card">
-      <div class="flex items-center gap-2 mb-4">
-        <Zap :size="18" style="color: var(--color-primary);" />
-        <h2 class="text-base font-semibold" style="color: var(--text-primary);">Quick Actions</h2>
-      </div>
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <button 
-          v-for="action in quickActions" 
-          :key="action.label"
-          @click="action.action"
-          class="flex items-center gap-3 p-4 rounded-xl border transition-all hover:-translate-y-1 hover:shadow-lg text-left"
-          style="border-color: var(--border-color); background: var(--bg-surface);"
-        >
-          <div 
-            class="w-10 h-10 rounded-lg flex items-center justify-center"
-            :style="`background: var(--color-${action.color}-subtle);`"
-          >
-            <component :is="action.icon" :size="18" :style="`color: var(--color-${action.color});`" />
-          </div>
-          <span class="text-sm font-medium" style="color: var(--text-primary);">{{ action.label }}</span>
-        </button>
-      </div>
     </div>
 
     <!-- Stats Grid -->
@@ -266,88 +254,156 @@ onUnmounted(() => {
       </Skeleton>
     </div>
 
-    <!-- Two Column Layout -->
+    <!-- Quick Actions -->
+    <div class="panda-card">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <button 
+          v-for="action in quickActions" 
+          :key="action.label"
+          @click="action.action"
+          class="flex items-center gap-3 p-4 rounded-xl border transition-all hover:-translate-y-1 hover:shadow-lg text-left"
+          style="border-color: var(--border-color); background: var(--bg-surface);"
+        >
+          <div 
+            class="w-10 h-10 rounded-lg flex items-center justify-center"
+            :style="`background: var(--color-${action.color}-subtle);`"
+          >
+            <component :is="action.icon" :size="18" :style="`color: var(--color-${action.color});`" />
+          </div>
+          <span class="text-sm font-medium" style="color: var(--text-primary);">{{ action.label }}</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Real-time Monitoring & Security (New Section) -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <!-- Recent Sites with Contextual SSL -->
-      <div class="panda-card">
+      <!-- Access Logs (User/Bots) -->
+      <div class="panda-card overflow-hidden flex flex-col">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center gap-2">
+            <Monitor :size="18" style="color: var(--color-info);" />
+            <h2 class="text-base font-semibold" style="color: var(--text-primary);">Live Traffic</h2>
+          </div>
+          <div class="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20">
+            <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
+            <span class="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Real-time</span>
+          </div>
+        </div>
+
+        <div v-if="accessLogs.length" class="flex-1 space-y-1">
+          <div 
+            v-for="(log, idx) in accessLogs" 
+            :key="idx"
+            class="group flex items-center gap-3 p-2.5 rounded-lg hover:bg-[var(--bg-hover)] transition-colors border border-transparent hover:border-[var(--border-color)]"
+          >
+            <div class="w-9 h-9 rounded-full flex items-center justify-center bg-[var(--bg-surface)] border border-[var(--border-color)]">
+              <Bot v-if="log.is_bot" :size="14" class="text-amber-500" />
+              <Smartphone v-else :size="14" class="text-blue-500" />
+            </div>
+            
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-sm font-mono font-medium truncate" style="color: var(--text-primary);">{{ log.ip }}</span>
+                <span class="text-[10px] font-mono text-[var(--text-muted)]">{{ formatTime(log.time) }}</span>
+              </div>
+              <div class="flex items-center gap-2 mt-0.5">
+                <span class="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded" 
+                      :class="log.status >= 400 ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-500'">
+                  {{ log.method }} {{ log.status }}
+                </span>
+                <span class="text-xs truncate text-[var(--text-muted)]">{{ log.path }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div v-else class="flex-1 flex flex-col items-center justify-center py-12 text-center opacity-40">
+          <Monitor :size="48" class="mb-2" />
+          <p class="text-sm">No live traffic detected</p>
+        </div>
+      </div>
+
+      <!-- Security Events (SSH/Hackers) -->
+      <div class="panda-card overflow-hidden flex flex-col">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center gap-2">
+            <Shield :size="18" style="color: var(--color-error);" />
+            <h2 class="text-base font-semibold" style="color: var(--text-primary);">Security Events</h2>
+          </div>
+          <button @click="router.push('/security')" class="text-xs font-bold text-[var(--color-primary)] uppercase tracking-widest hover:underline">
+            Manage Firewall
+          </button>
+        </div>
+
+        <div v-if="securityLogs.length" class="flex-1 space-y-1">
+          <div 
+            v-for="(log, idx) in securityLogs" 
+            :key="idx"
+            class="flex items-start gap-3 p-2.5 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-color)] shadow-sm"
+          >
+            <div class="mt-1 p-1.5 rounded-lg" :class="log.status === 'Failed' ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-500'">
+              <AlertTriangle v-if="log.status === 'Failed'" :size="14" />
+              <CheckCircle v-else :size="14" />
+            </div>
+            
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center justify-between mb-1">
+                <span class="text-[11px] font-bold uppercase tracking-wider" :class="log.status === 'Failed' ? 'text-red-400' : 'text-green-400'">
+                  {{ log.type }} {{ log.status }}
+                </span>
+                <span class="text-[10px] font-mono text-[var(--text-muted)]">{{ log.time }}</span>
+              </div>
+              <p class="text-xs font-medium" style="color: var(--text-primary);">{{ log.message }}</p>
+              <div class="flex items-center gap-2 mt-1.5">
+                <span class="text-[10px] font-mono px-1.5 py-0.5 bg-black/30 rounded text-gray-400">User: {{ log.user }}</span>
+                <span class="text-[10px] font-mono px-1.5 py-0.5 bg-black/30 rounded text-gray-400">IP: {{ log.ip }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div v-else class="flex-1 flex flex-col items-center justify-center py-12 text-center opacity-40">
+          <Shield :size="48" class="mb-2" />
+          <p class="text-sm">Server is secured. No major events.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts & Sites -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="lg:col-span-2 panda-card">
         <div class="flex items-center justify-between mb-4">
           <div class="flex items-center gap-2">
             <Globe :size="18" style="color: var(--color-primary);" />
             <h2 class="text-base font-semibold" style="color: var(--text-primary);">Recent Sites</h2>
           </div>
-          <router-link to="/websites" class="text-sm flex items-center gap-1 hover:underline" style="color: var(--color-primary);">
-            View all <ArrowRight :size="14" />
-          </router-link>
         </div>
-        
         <div v-if="recentSites.length" class="space-y-2">
-          <div 
-            v-for="site in recentSites" 
-            :key="site.domain"
-            class="flex items-center justify-between p-3 rounded-lg transition-colors hover:bg-[var(--bg-hover)]"
-          >
+          <div v-for="site in recentSites" :key="site.domain" class="flex items-center justify-between p-3 rounded-lg hover:bg-[var(--bg-hover)]">
             <div class="flex items-center gap-3">
-              <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: var(--color-primary-subtle);">
-                <Globe :size="14" style="color: var(--color-primary);" />
+              <div class="w-8 h-8 rounded-lg flex items-center justify-center bg-[var(--color-primary-subtle)]">
+                <Globe :size="14" class="text-[var(--color-primary)]" />
               </div>
-              <div>
-                <div class="text-sm font-medium" style="color: var(--text-primary);">{{ site.domain }}</div>
-                <div class="text-xs" style="color: var(--text-muted);">Port {{ site.port }}</div>
-              </div>
+              <span class="text-sm font-medium">{{ site.domain }}</span>
             </div>
             <div class="flex items-center gap-2">
-              <!-- Contextual SSL Button -->
-              <button 
-                v-if="site.ssl"
-                class="panda-badge panda-badge-success"
-              >
-                <Lock :size="10" class="mr-1" /> SSL
-              </button>
-              <button 
-                v-else
-                @click="enableSSL(site.domain)"
-                class="panda-btn panda-btn-secondary text-xs py-1 px-2"
-              >
-                Enable SSL
-              </button>
-              <a 
-                :href="(site.ssl ? 'https://' : 'http://') + site.domain" 
-                target="_blank"
-                class="panda-btn panda-btn-ghost p-1.5"
-              >
+              <span class="panda-badge panda-badge-success" v-if="site.ssl">SSL</span>
+              <a :href="'http://' + site.domain" target="_blank" class="p-1.5 hover:text-white transition-colors">
                 <ExternalLink :size="14" />
               </a>
             </div>
           </div>
         </div>
-        
-        <div v-else class="text-center py-8" style="color: var(--text-muted);">
-          <Globe :size="32" class="mx-auto mb-2 opacity-30" />
-          <p class="text-sm">No websites yet</p>
-          <button @click="$router.push('/websites')" class="panda-btn panda-btn-primary mt-3 text-sm">
-            <Plus :size="14" /> Create Website
-          </button>
-        </div>
       </div>
 
-      <!-- Charts -->
-      <div class="space-y-5">
-        <div class="panda-card">
-          <div class="flex items-center justify-between mb-3">
-            <h3 class="text-sm font-semibold" style="color: var(--text-primary);">CPU History</h3>
-            <span class="text-sm font-mono" style="color: var(--color-info);">{{ systemStats?.cpu_usage.toFixed(1) }}%</span>
-          </div>
-          <div class="h-32">
+      <div class="space-y-4">
+        <div class="panda-card !p-4">
+          <p class="text-xs font-semibold text-[var(--text-muted)] uppercase mb-2">CPU History</p>
+          <div class="h-20">
             <Line v-if="!loading" :data="cpuData" :options="chartOptions" />
           </div>
         </div>
-        
-        <div class="panda-card">
-          <div class="flex items-center justify-between mb-3">
-            <h3 class="text-sm font-semibold" style="color: var(--text-primary);">Memory History</h3>
-            <span class="text-sm font-mono" style="color: #8b5cf6;">{{ systemStats?.memory.used_percent.toFixed(1) }}%</span>
-          </div>
-          <div class="h-32">
+        <div class="panda-card !p-4">
+          <p class="text-xs font-semibold text-[var(--text-muted)] uppercase mb-2">RAM History</p>
+          <div class="h-20">
             <Line v-if="!loading" :data="ramData" :options="chartOptions" />
           </div>
         </div>
