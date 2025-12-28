@@ -476,7 +476,7 @@ func TriggerDeployHandler(c *gin.Context) {
 	name := c.Param("name")
 
 	cmd := exec.Command("bash", "-c", fmt.Sprintf(
-		"source /opt/panda/modules/deploy/workflow.sh && deploy_by_name %s",
+		"export GIT_SSH_COMMAND=\"ssh -o StrictHostKeyChecking=no\" && source /opt/panda/modules/deploy/workflow.sh && deploy_by_name %s",
 		name,
 	))
 	output, err := cmd.CombinedOutput()
@@ -611,6 +611,7 @@ WEB_ROOT="/home/%s"
 mkdir -p "$WEB_ROOT"
 
 # Clone repo
+export GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no"
 git clone --depth 1 "$REPO" "$WEB_ROOT" 2>&1 || { rm -rf "$WEB_ROOT"; git clone --depth 1 "$REPO" "$WEB_ROOT"; }
 
 # Set permissions

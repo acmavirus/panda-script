@@ -43,6 +43,9 @@ func ParseAccessLogs(limit int) ([]AccessLogEntry, error) {
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		path = "logs/nginx_access.log"
 	}
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return []AccessLogEntry{}, nil
+	}
 
 	file, err := os.Open(path)
 	if err != nil {

@@ -22,18 +22,18 @@ git push origin main
 Always deploy to the test server first to verify stability and premium UX.
 // turbo
 ```bash
-ssh root@171.244.139.52 "cd /opt/panda && git fetch origin && git reset --hard origin/main && cd v3/web && npm install && npm run build && cd .. && go build -o panda-linux main.go && systemctl restart panda"
+ssh root@*.52 "cd /opt/panda && git fetch origin && git reset --hard origin/main && cd v3/web && npm install && npm run build && cd .. && go build -o panda-linux main.go && systemctl restart panda"
 ```
 After deployment, verify the health status:
 ```bash
-ssh root@171.244.139.52 "curl -s http://localhost:8888/api/health"
+ssh root@*.52 "curl -s http://localhost:8888/api/health"
 ```
 
 ### 3. User Confirmation & Production Sync
 Only proceed to Production after confirming the Test server is functional and bug-free.
 // turbo
 ```bash
-ssh root@160.250.130.123 "cd /opt/panda && git fetch origin && git reset --hard origin/main && cd v3/web && npm install && npm run build && cd .. && go build -o panda-linux main.go && systemctl restart panda"
+ssh root@*.123 "cd /opt/panda && git fetch origin && git reset --hard origin/main && cd v3/web && npm install && npm run build && cd .. && go build -o panda-linux main.go && systemctl restart panda"
 ```
 
 ## Maintenance Rules

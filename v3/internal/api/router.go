@@ -273,10 +273,6 @@ func RegisterRoutes(r *gin.RouterGroup) {
 		protected.POST("/panel/ssl", EnablePanelSSLHandler)
 		protected.GET("/panel/ssl/status", GetPanelSSLStatusHandler)
 
-		// Theme Settings
-		protected.GET("/settings/theme", GetThemeHandler)
-		protected.POST("/settings/theme", SetThemeHandler)
-
 		// ============================================
 		// NEW: CMS Installer Routes
 		// ============================================
@@ -329,4 +325,6 @@ func RegisterRoutes(r *gin.RouterGroup) {
 
 	// Public routes
 	r.GET("/auth/verify-token", VerifyLoginTokenHandler)
+	r.GET("/settings/theme", GetThemeHandler)
+	r.POST("/settings/theme", SetThemeHandler)
 }
