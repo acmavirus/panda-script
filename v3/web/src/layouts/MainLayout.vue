@@ -138,7 +138,7 @@ onMounted(() => {
           </div>
           <div>
             <h1 class="font-semibold text-sm" style="color: var(--text-primary);">Panda Panel</h1>
-            <span class="text-[10px] font-mono" style="color: var(--color-primary);">v3.0.0</span>
+            <span class="text-[10px] font-mono" style="color: var(--color-primary);">v3.1.0</span>
           </div>
         </router-link>
         <button @click="closeSidebar" class="lg:hidden p-1.5 rounded-md hover:bg-[var(--bg-hover)] transition-colors">
@@ -167,22 +167,6 @@ onMounted(() => {
           <!-- Group Header -->
           <button 
             @click="toggleGroup(group.id)"
-            class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-[11px] font-semibold uppercase tracking-wider transition-colors"
-            :class="isGroupActive(group) ? 'text-[var(--color-primary)]' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'"
-          >
-            <div class="flex items-center gap-2">
-              <component :is="group.icon" :size="14" />
-              <span>{{ group.label }}</span>
-            </div>
-            <ChevronDown 
-              :size="14" 
-              class="transition-transform duration-200"
-              :class="{ 'rotate-180': !expandedGroups[group.id] }"
-            />
-          </button>
-          
-          <!-- Group Items -->
-          <Transition name="slide">
             <div v-if="expandedGroups[group.id]" class="mt-1 space-y-0.5 pl-2">
               <router-link 
                 v-for="item in group.items"

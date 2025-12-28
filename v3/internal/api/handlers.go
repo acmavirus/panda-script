@@ -29,7 +29,7 @@ import (
 func HealthHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"status":  "ok",
-		"version": "3.0.0",
+		"version": "3.1.0",
 		"time":    time.Now().Format(time.RFC3339),
 	})
 }

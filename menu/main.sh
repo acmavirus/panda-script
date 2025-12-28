@@ -1,8 +1,7 @@
-#!/bin/bash
-#================================================
-# Panda Script v2.3 - Main Menu (7 Groups)
+# Panda Script v2.5 - Main Menu (7 Groups)
 # Optimized for UX - Easy to remember
 # Website: https://panda-script.com
+# Version: 3.1.0
 #================================================
 
 source "${PANDA_DIR:-/opt/panda}/core/init.sh" 2>/dev/null || true
@@ -11,7 +10,7 @@ show_main_menu() {
     while true; do
         clear
         echo -e "${CYAN}╔══════════════════════════════════════════════════════════════╗${NC}"
-        echo -e "${CYAN}║       🐼 Panda Script v2.3 - High Performance LEMP           ║${NC}"
+        echo -e "${CYAN}║       🐼 Panda Script v3.1.0 - Premium UX            ║${NC}"
         echo -e "${CYAN}╠══════════════════════════════════════════════════════════════╣${NC}"
         echo -e "${CYAN}║${NC}                                                              ${CYAN}║${NC}"
         echo -e "${CYAN}║${NC}  ${YELLOW}1.${NC} 🌐 ${WHITE}Websites${NC}    → Create, CMS, Clone, WP-CLI            ${CYAN}║${NC}"
@@ -438,15 +437,15 @@ health_check() {
     
     pause
 }
-
-#================================================
-# 7. PANEL MENU (Web Panel v3)
+# Panda Panel v3.1.0 - Unified Installer
+# Includes: CLI Menu + Web Panel + Scripts
 #================================================
 panel_menu() {
     while true; do
         clear
         echo -e "${CYAN}╔══════════════════════════════════════════════════════════════╗${NC}"
-        echo -e "${CYAN}║              🎛️  Panda Panel v3                               ║${NC}"
+        echo -e "${CYAN}║       🐼 PANDA SCRIPT v2.5 INSTALLER         ║${NC}"
+echo -e "${CYAN}║       High Performance LEMP + Panel v3.1.0   ║${NC}"
         echo -e "${CYAN}╠══════════════════════════════════════════════════════════════╣${NC}"
         echo -e "${CYAN}║${NC}  1. 🌐 Open Web Panel (Browser)                             ${CYAN}║${NC}"
         echo -e "${CYAN}║${NC}  2. ▶️  Start Panel Service                                  ${CYAN}║${NC}"
