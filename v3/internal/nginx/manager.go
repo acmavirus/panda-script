@@ -378,3 +378,77 @@ func GetStatus() (string, error) {
 	out, _ := system.Execute("systemctl is-active nginx")
 	return strings.TrimSpace(out), nil
 }
+
+// Start starts nginx service
+func Start() error {
+	if runtime.GOOS == "windows" {
+		return nil
+	}
+	_, err := system.Execute("systemctl start nginx")
+	return err
+}
+
+// Stop stops nginx service
+func Stop() error {
+	if runtime.GOOS == "windows" {
+		return nil
+	}
+	_, err := system.Execute("systemctl stop nginx")
+	return err
+}
+
+// GetVhostContent returns the raw config content for a virtual host
+func GetVhostContent(domain string) (string, error) {
+	configPath := filepath.Join(getSitesAvailable(), domain)
+	content, err := os.ReadFile(configPath)
+	if err != nil {
+		return "", err
+	}
+	return string(content), nil
+}
+
+// SaveVhostContent writes new config content for a virtual host
+func SaveVhostContent(domain, content string) error {
+	configPath := filepath.Join(getSitesAvailable(), domain)
+	if err := os.WriteFile(configPath, []byte(content), 0644); err != nil {
+		return err
+	}
+
+	// Update enabled symlink/file
+	enabledPath := filepath.Join(getSitesEnabled(), domain)
+	if runtime.GOOS == "windows" {
+		os.WriteFile(enabledPath, []byte(content), 0644)
+	}
+
+	// Test and reload
+	if err := TestConfig(); err != nil {
+		return err
+	}
+	return Reload()
+}
+
+// GetMainConfig returns the main nginx.conf content
+func GetMainConfig() (string, error) {
+	if runtime.GOOS == "windows" {
+		return "# Mock nginx.conf for Windows", nil
+	}
+	content, err := os.ReadFile("/etc/nginx/nginx.conf")
+	if err != nil {
+		return "", err
+	}
+	return string(content), nil
+}
+
+// SaveMainConfig saves the main nginx.conf
+func SaveMainConfig(content string) error {
+	if runtime.GOOS == "windows" {
+		return nil
+	}
+	if err := os.WriteFile("/etc/nginx/nginx.conf", []byte(content), 0644); err != nil {
+		return err
+	}
+	if err := TestConfig(); err != nil {
+		return err
+	}
+	return Reload()
+}

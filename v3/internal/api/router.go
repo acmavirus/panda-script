@@ -121,6 +121,13 @@ func RegisterRoutes(r *gin.RouterGroup) {
 			nginxGroup.POST("/test", TestNginxConfigHandler)
 			nginxGroup.POST("/reload", ReloadNginxHandler)
 			nginxGroup.GET("/status", NginxStatusHandler)
+			nginxGroup.POST("/start", NginxStartHandler)
+			nginxGroup.POST("/stop", NginxStopHandler)
+			nginxGroup.POST("/restart", NginxRestartHandler)
+			nginxGroup.GET("/config", GetMainNginxConfigHandler)
+			nginxGroup.POST("/config", SaveMainNginxConfigHandler)
+			nginxGroup.GET("/vhosts/:domain/content", GetVhostContentHandler)
+			nginxGroup.POST("/vhosts/content", SaveVhostContentHandler)
 		}
 
 		// Security

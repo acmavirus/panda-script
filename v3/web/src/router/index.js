@@ -76,6 +76,11 @@ const router = createRouter({
           component: PHP
         },
         {
+          path: 'nginx',
+          name: 'nginx',
+          component: () => import('../views/Nginx.vue')
+        },
+        {
           path: 'ssl',
           name: 'ssl',
           component: SSL

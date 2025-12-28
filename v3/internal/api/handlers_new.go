@@ -317,6 +317,80 @@ func NginxStatusHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"status": status})
 }
 
+func NginxStartHandler(c *gin.Context) {
+	if err := nginx.Start(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Nginx started"})
+}
+
+func NginxStopHandler(c *gin.Context) {
+	if err := nginx.Stop(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Nginx stopped"})
+}
+
+func NginxRestartHandler(c *gin.Context) {
+	if err := nginx.Restart(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Nginx restarted"})
+}
+
+func GetVhostContentHandler(c *gin.Context) {
+	domain := c.Param("domain")
+	content, err := nginx.GetVhostContent(domain)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"content": content})
+}
+
+func SaveVhostContentHandler(c *gin.Context) {
+	var req struct {
+		Domain  string `json:"domain" binding:"required"`
+		Content string `json:"content" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if err := nginx.SaveVhostContent(req.Domain, req.Content); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Configuration saved"})
+}
+
+func GetMainNginxConfigHandler(c *gin.Context) {
+	content, err := nginx.GetMainConfig()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"content": content})
+}
+
+func SaveMainNginxConfigHandler(c *gin.Context) {
+	var req struct {
+		Content string `json:"content" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if err := nginx.SaveMainConfig(req.Content); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "nginx.conf saved"})
+}
+
 // ============================================================================
 // Security Handlers
 // ============================================================================
