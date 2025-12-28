@@ -1,6 +1,6 @@
 module github.com/acmavirus/panda-script/v3
 
-go 1.25.5
+go 1.18
 
 require (
 	github.com/gin-gonic/gin v1.11.0
@@ -59,6 +59,8 @@ require (
 	go.uber.org/mock v0.6.0 // indirect
 	golang.org/x/arch v0.23.0 // indirect
 	golang.org/x/exp v0.0.0-20250620022241-b7579e27df2b // indirect
+	golang.org/x/net v0.48.0 // indirect
+	golang.org/x/sys v0.39.0 // indirect
 	golang.org/x/net v0.48.0 // indirect
 	golang.org/x/sys v0.39.0 // indirect
 	golang.org/x/text v0.32.0 // indirect
