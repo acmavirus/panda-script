@@ -226,7 +226,7 @@ onMounted(() => {
       >
         <!-- Left: Mobile menu + Search -->
         <div class="flex items-center gap-3">
-          <button @click="sidebarOpen = true" class="lg:hidden p-2 rounded-lg hover:bg-[var(--bg-hover)] transition-colors">
+          <button @click="sidebarOpen = true" class="p-2 rounded-lg hover:bg-[var(--bg-hover)] transition-colors lg:hidden">
             <Menu :size="20" style="color: var(--text-muted);" />
           </button>
           
