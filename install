@@ -13,7 +13,7 @@ CYAN='\033[0;36m'
 NC='\033[0m'
 
 echo -e "${CYAN}╔══════════════════════════════════════════════╗${NC}"
-echo -e "${CYAN}║       🐼 PANDA SCRIPT v2.5 INSTALLER         ║${NC}"
+echo -e "${CYAN}║       🐼 PANDA SCRIPT v3.1.0 INSTALLER       ║${NC}"
 echo -e "${CYAN}║       High Performance LEMP + Panel v3.1.0   ║${NC}"
 echo -e "${CYAN}╚══════════════════════════════════════════════╝${NC}"
 echo ""
@@ -130,7 +130,7 @@ fi
 
 echo ""
 echo -e "${GREEN}══════════════════════════════════════════════════${NC}"
-echo -e "${GREEN}✅ Panda Script v2.5 installed successfully!${NC}"
+echo -e "${GREEN}✅ Panda Script v3.1.0 installed successfully!${NC}"
 echo -e "${GREEN}══════════════════════════════════════════════════${NC}"
 echo ""
 echo -e "${CYAN}🌐 Web Panel:${NC}  http://${PUBLIC_IP}:${PANEL_PORT}/panda"
