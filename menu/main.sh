@@ -58,13 +58,11 @@ websites_menu() {
         echo -e "${CYAN}║              🌐 Websites Management                          ║${NC}"
         echo -e "${CYAN}╠══════════════════════════════════════════════════════════════╣${NC}"
         echo -e "${CYAN}║${NC}  1. ➕ Create Website                                        ${CYAN}║${NC}"
-        echo -e "${CYAN}║${NC}     ├── Empty Site                                          ${CYAN}║${NC}"
-        echo -e "${CYAN}║${NC}     ├── CMS One-Click (WordPress, Joomla...)                ${CYAN}║${NC}"
-        echo -e "${CYAN}║${NC}     └── Node.js/Python App                                  ${CYAN}║${NC}"
         echo -e "${CYAN}║${NC}  2. 📋 List Websites                                        ${CYAN}║${NC}"
         echo -e "${CYAN}║${NC}  3. ❌ Delete Website                                        ${CYAN}║${NC}"
         echo -e "${CYAN}║${NC}  4. 📑 Clone Website                                        ${CYAN}║${NC}"
         echo -e "${CYAN}║${NC}  5. 🔧 WP-CLI Management                                    ${CYAN}║${NC}"
+        echo -e "${CYAN}║${NC}  6. 🐙 Clone from GitHub (NEW)                              ${CYAN}║${NC}"
         echo -e "${CYAN}║${NC}  0. ← Back                                                  ${CYAN}║${NC}"
         echo -e "${CYAN}╚══════════════════════════════════════════════════════════════╝${NC}"
         echo ""
@@ -76,10 +74,126 @@ websites_menu() {
             3) source "$PANDA_DIR/modules/website/create.sh"; delete_website ;;
             4) source "$PANDA_DIR/modules/website/clone.sh"; clone_website ;;
             5) source "$PANDA_DIR/modules/website/wp_cli.sh"; wp_cli_menu ;;
+            6) clone_from_github_menu ;;
             0) return ;;
             *) log_error "Invalid option"; sleep 1 ;;
         esac
     done
+}
+
+# Clone from GitHub
+clone_from_github_menu() {
+    clear
+    echo -e "${CYAN}╔══════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${CYAN}║              🐙 Clone from GitHub                            ║${NC}"
+    echo -e "${CYAN}╠══════════════════════════════════════════════════════════════╣${NC}"
+    echo -e "${CYAN}║${NC}  Select project type:                                       ${CYAN}║${NC}"
+    echo -e "${CYAN}║${NC}  1. 🐘 PHP (Laravel, CodeIgniter, etc)                      ${CYAN}║${NC}"
+    echo -e "${CYAN}║${NC}  2. 📦 Node.js                                              ${CYAN}║${NC}"
+    echo -e "${CYAN}║${NC}  3. 🐍 Python (Flask, FastAPI, Django)                      ${CYAN}║${NC}"
+    echo -e "${CYAN}║${NC}  4. ☕ Java (Spring Boot)                                   ${CYAN}║${NC}"
+    echo -e "${CYAN}║${NC}  0. ← Back                                                  ${CYAN}║${NC}"
+    echo -e "${CYAN}╚══════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    read -p "Enter your choice: " type_choice
+    
+    case $type_choice in
+        1) project_type="php" ;;
+        2) project_type="nodejs" ;;
+        3) project_type="python" ;;
+        4) project_type="java" ;;
+        0) return ;;
+        *) log_error "Invalid option"; return ;;
+    esac
+    
+    echo ""
+    read -p "GitHub URL (e.g., https://github.com/user/repo.git): " repo_url
+    if [ -z "$repo_url" ]; then
+        log_error "URL cannot be empty"
+        pause
+        return
+    fi
+    
+    read -p "Domain/Project name: " domain
+    if [ -z "$domain" ]; then
+        log_error "Domain cannot be empty"
+        pause
+        return
+    fi
+    
+    echo ""
+    log_info "Cloning $project_type project from $repo_url..."
+    
+    case $project_type in
+        php)
+            WEB_ROOT="/home/$domain"
+            mkdir -p "$WEB_ROOT"
+            git clone --depth 1 "$repo_url" "$WEB_ROOT" 2>&1 || { rm -rf "$WEB_ROOT"; git clone --depth 1 "$repo_url" "$WEB_ROOT"; }
+            chown -R www-data:www-data "$WEB_ROOT"
+            find "$WEB_ROOT" -type d -exec chmod 755 {} \;
+            find "$WEB_ROOT" -type f -exec chmod 644 {} \;
+            
+            # Install composer if exists
+            if [ -f "$WEB_ROOT/composer.json" ]; then
+                cd "$WEB_ROOT"
+                composer install --no-dev --optimize-autoloader 2>/dev/null || true
+            fi
+            
+            # Create Nginx config
+            cat > /etc/nginx/sites-available/$domain.conf << NGINX
+server {
+    listen 80;
+    server_name $domain;
+    root /home/$domain;
+    index index.php index.html;
+    
+    location / {
+        try_files \$uri \$uri/ /index.php?\$query_string;
+    }
+    
+    location ~ \.php\$ {
+        fastcgi_pass unix:/var/run/php/php-fpm.sock;
+        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
+        include fastcgi_params;
+    }
+    
+    location ~ /\.ht {
+        deny all;
+    }
+}
+NGINX
+            ln -sf /etc/nginx/sites-available/$domain.conf /etc/nginx/sites-enabled/
+            nginx -t && systemctl reload nginx
+            log_success "PHP project cloned to $WEB_ROOT"
+            ;;
+        nodejs)
+            WEB_ROOT="/home/nodejs-apps/$domain"
+            mkdir -p "/home/nodejs-apps"
+            git clone --depth 1 "$repo_url" "$WEB_ROOT"
+            cd "$WEB_ROOT"
+            npm install 2>/dev/null || true
+            log_success "Node.js project cloned to $WEB_ROOT"
+            echo "Run: cd $WEB_ROOT && npm start"
+            ;;
+        python)
+            WEB_ROOT="/home/python-apps/$domain"
+            mkdir -p "/home/python-apps"
+            git clone --depth 1 "$repo_url" "$WEB_ROOT"
+            cd "$WEB_ROOT"
+            python3 -m venv venv 2>/dev/null || true
+            source venv/bin/activate 2>/dev/null || true
+            pip install -r requirements.txt 2>/dev/null || true
+            log_success "Python project cloned to $WEB_ROOT"
+            ;;
+        java)
+            WEB_ROOT="/home/java-apps/$domain"
+            mkdir -p "/home/java-apps"
+            git clone --depth 1 "$repo_url" "$WEB_ROOT"
+            log_success "Java project cloned to $WEB_ROOT"
+            ;;
+    esac
+    
+    pause
 }
 
 # Website Creation Flow (3 options)
@@ -162,10 +276,51 @@ services_menu() {
 }
 
 install_cache_menu() {
-    clear
-    echo "Installing Redis/Memcached..."
-    # TODO: Add Redis/Memcached installation
-    pause
+    while true; do
+        clear
+        echo -e "${CYAN}╔══════════════════════════════════════════════════════════════╗${NC}"
+        echo -e "${CYAN}║              📦 Cache Server Management                      ║${NC}"
+        echo -e "${CYAN}╠══════════════════════════════════════════════════════════════╣${NC}"
+        echo -e "${CYAN}║${NC}  1. 📕 Install Redis                                        ${CYAN}║${NC}"
+        echo -e "${CYAN}║${NC}  2. 📗 Install Memcached                                    ${CYAN}║${NC}"
+        echo -e "${CYAN}║${NC}  3. 📊 Redis Info                                           ${CYAN}║${NC}"
+        echo -e "${CYAN}║${NC}  4. 🔄 Restart Redis                                        ${CYAN}║${NC}"
+        echo -e "${CYAN}║${NC}  5. 🔄 Restart Memcached                                    ${CYAN}║${NC}"
+        echo -e "${CYAN}║${NC}  0. ← Back                                                  ${CYAN}║${NC}"
+        echo -e "${CYAN}╚══════════════════════════════════════════════════════════════╝${NC}"
+        echo ""
+        read -p "Enter your choice: " choice
+        
+        case $choice in
+            1) 
+                log_info "Installing Redis..."
+                apt-get install -y redis-server && systemctl enable redis-server && systemctl start redis-server
+                log_success "Redis installed and started"
+                pause
+                ;;
+            2) 
+                log_info "Installing Memcached..."
+                apt-get install -y memcached && systemctl enable memcached && systemctl start memcached
+                log_success "Memcached installed and started"
+                pause
+                ;;
+            3)
+                echo -e "${YELLOW}Redis Info:${NC}"
+                redis-cli INFO server 2>/dev/null | head -20 || log_error "Redis not running"
+                pause
+                ;;
+            4)
+                systemctl restart redis-server && log_success "Redis restarted" || log_error "Failed"
+                pause
+                ;;
+            5)
+                systemctl restart memcached && log_success "Memcached restarted" || log_error "Failed"
+                pause
+                ;;
+            0) return ;;
+            *) log_error "Invalid option"; sleep 1 ;;
+        esac
+    done
 }
 
 #================================================
@@ -191,6 +346,7 @@ system_menu_new() {
         echo -e "${CYAN}║${NC}  4. 🧹 System Cleanup                                       ${CYAN}║${NC}"
         echo -e "${CYAN}║${NC}  5. ⏰ Cron Jobs                                            ${CYAN}║${NC}"
         echo -e "${CYAN}║${NC}  6. 🛠️  Developer Tools                                      ${CYAN}║${NC}"
+        echo -e "${CYAN}║${NC}  7. 🩺 Health Check (Panda Doctor)                          ${CYAN}║${NC}"
         echo -e "${CYAN}║${NC}  0. ← Back                                                  ${CYAN}║${NC}"
         echo -e "${CYAN}╚══════════════════════════════════════════════════════════════╝${NC}"
         echo ""
@@ -203,10 +359,84 @@ system_menu_new() {
             4) source "$PANDA_DIR/modules/system/clean.sh"; system_cleanup ;;
             5) source "$PANDA_DIR/modules/system/cron.sh"; cron_menu ;;
             6) source "$PANDA_DIR/menu/developer.sh"; developer_menu ;;
+            7) health_check ;;
             0) return ;;
             *) log_error "Invalid option"; sleep 1 ;;
         esac
     done
+}
+
+# Health Check (Panda Doctor)
+health_check() {
+    clear
+    echo -e "${CYAN}╔══════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${CYAN}║              🩺 Panda Doctor - Health Check                  ║${NC}"
+    echo -e "${CYAN}╚══════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    
+    local score=100
+    
+    # Disk Usage
+    echo -e "${YELLOW}📁 Disk Usage:${NC}"
+    disk_usage=$(df -h / | tail -1 | awk '{print $5}' | tr -d '%')
+    if [ "$disk_usage" -gt 90 ]; then
+        echo -e "   ${RED}✗ CRITICAL: ${disk_usage}% used${NC}"
+        score=$((score - 30))
+    elif [ "$disk_usage" -gt 80 ]; then
+        echo -e "   ${YELLOW}⚠ WARNING: ${disk_usage}% used${NC}"
+        score=$((score - 10))
+    else
+        echo -e "   ${GREEN}✓ OK: ${disk_usage}% used${NC}"
+    fi
+    
+    # Memory Usage
+    echo ""
+    echo -e "${YELLOW}💾 Memory Usage:${NC}"
+    mem_usage=$(free | grep Mem | awk '{printf "%.0f", $3/$2 * 100}')
+    if [ "$mem_usage" -gt 95 ]; then
+        echo -e "   ${RED}✗ CRITICAL: ${mem_usage}% used${NC}"
+        score=$((score - 20))
+    elif [ "$mem_usage" -gt 85 ]; then
+        echo -e "   ${YELLOW}⚠ WARNING: ${mem_usage}% used${NC}"
+        score=$((score - 5))
+    else
+        echo -e "   ${GREEN}✓ OK: ${mem_usage}% used${NC}"
+    fi
+    
+    # Services Check
+    echo ""
+    echo -e "${YELLOW}🔧 Services:${NC}"
+    for svc in nginx mysql php8.3-fpm; do
+        status=$(systemctl is-active $svc 2>/dev/null)
+        if [ "$status" = "active" ]; then
+            echo -e "   ${GREEN}✓ $svc: $status${NC}"
+        else
+            echo -e "   ${RED}✗ $svc: $status${NC}"
+            score=$((score - 15))
+        fi
+    done
+    
+    # SSL Check
+    echo ""
+    echo -e "${YELLOW}🔒 SSL Certificates:${NC}"
+    cert_count=$(ls /etc/letsencrypt/live/ 2>/dev/null | wc -l)
+    echo -e "   Active certificates: $cert_count"
+    
+    # Calculate final score
+    if [ $score -lt 0 ]; then score=0; fi
+    
+    echo ""
+    echo -e "${CYAN}══════════════════════════════════════════════════════════════${NC}"
+    if [ $score -ge 80 ]; then
+        echo -e "${GREEN}🎉 Health Score: $score/100 - System is healthy!${NC}"
+    elif [ $score -ge 50 ]; then
+        echo -e "${YELLOW}⚠️  Health Score: $score/100 - Some issues need attention${NC}"
+    else
+        echo -e "${RED}🚨 Health Score: $score/100 - Critical issues detected!${NC}"
+    fi
+    echo ""
+    
+    pause
 }
 
 #================================================
