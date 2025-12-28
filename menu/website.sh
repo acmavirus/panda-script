@@ -15,6 +15,7 @@ website_menu() {
         echo "  5. 🌐 WP-CLI Management"
         echo "  6. 🚀 Node.js Website"
         echo "  7. 👯 Clone/Staging Website"
+        echo "  8. 🚀 One-Click CMS (NEW!)"
         echo "  0. Back"
         echo ""
         read -p "Enter your choice: " choice
@@ -53,6 +54,7 @@ website_menu() {
                 clone_website "$src" "$target"
                 pause
                 ;;
+            8) source "$PANDA_DIR/modules/website/cms_installer.sh"; cms_menu ;;
             0) return ;;
             *) log_error "Invalid option"; pause ;;
         esac

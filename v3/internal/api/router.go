@@ -270,6 +270,55 @@ func RegisterRoutes(r *gin.RouterGroup) {
 		// Theme Settings
 		protected.GET("/settings/theme", GetThemeHandler)
 		protected.POST("/settings/theme", SetThemeHandler)
+
+		// ============================================
+		// NEW: CMS Installer Routes
+		// ============================================
+		cmsGroup := protected.Group("/cms")
+		{
+			cmsGroup.GET("/", ListCMSHandler)
+			cmsGroup.POST("/install", InstallCMSHandler)
+		}
+
+		// ============================================
+		// NEW: Python Project Routes
+		// ============================================
+		pythonGroup := protected.Group("/python")
+		{
+			pythonGroup.GET("/projects", ListPythonProjectsHandler)
+			pythonGroup.POST("/projects", CreatePythonProjectHandler)
+			pythonGroup.POST("/projects/:name/:action", ManagePythonProjectHandler)
+			pythonGroup.DELETE("/projects/:name", DeletePythonProjectHandler)
+		}
+
+		// ============================================
+		// NEW: Java Project Routes
+		// ============================================
+		javaGroup := protected.Group("/java")
+		{
+			javaGroup.GET("/projects", ListJavaProjectsHandler)
+			javaGroup.POST("/projects", CreateJavaProjectHandler)
+			javaGroup.POST("/projects/:name/:action", ManageJavaProjectHandler)
+		}
+
+		// ============================================
+		// NEW: Deployment Workflow Routes
+		// ============================================
+		deployGroup := protected.Group("/deploy")
+		{
+			deployGroup.GET("/", ListDeploymentsHandler)
+			deployGroup.POST("/", CreateDeploymentHandler)
+			deployGroup.POST("/:name/trigger", TriggerDeployHandler)
+			deployGroup.GET("/:name/logs", GetDeployLogsHandler)
+			deployGroup.DELETE("/:name", DeleteDeploymentHandler)
+			deployGroup.POST("/:name/auto-deploy", EnableAutoDeployHandler)
+		}
+
+		// Clone from GitHub
+		protected.POST("/clone", CloneFromGitHubHandler)
+
+		// Project Stats
+		protected.GET("/projects/stats", GetProjectStatsHandler)
 	}
 
 	// Public routes

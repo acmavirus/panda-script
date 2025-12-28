@@ -1,17 +1,19 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
-import { Plus, Trash2, Globe, Server, Folder } from 'lucide-vue-next'
+import { Plus, Trash2, Globe, ExternalLink, Lock, FolderOpen, Settings, MoreHorizontal } from 'lucide-vue-next'
+import Skeleton from '../components/Skeleton.vue'
 
 const websites = ref([])
 const showCreateModal = ref(false)
 const newWebsite = ref({
   domain: '',
   port: 80,
-  root: '/var/www/html',
+  root: '/var/www',
   ssl: false
 })
-const loading = ref(false)
+const loading = ref(true)
+const creating = ref(false)
 const error = ref('')
 
 const fetchWebsites = async () => {
@@ -29,31 +31,39 @@ const fetchWebsites = async () => {
 
 const createWebsite = async () => {
   try {
-    loading.value = true
+    creating.value = true
     newWebsite.value.port = parseInt(newWebsite.value.port)
-    await axios.post('/api/websites', newWebsite.value)
+    
+    // Optimistic UI - add immediately
+    const tempSite = { ...newWebsite.value, _creating: true }
+    websites.value.unshift(tempSite)
     showCreateModal.value = false
-    newWebsite.value = { domain: '', port: 80, root: '/var/www/html', ssl: false }
+    
+    await axios.post('/api/websites', newWebsite.value)
+    newWebsite.value = { domain: '', port: 80, root: '/var/www', ssl: false }
     await fetchWebsites()
   } catch (err) {
-    console.error('Failed to create website:', err)
+    // Remove optimistic entry on error
+    websites.value = websites.value.filter(w => !w._creating)
     error.value = err.response?.data?.error || 'Failed to create website'
   } finally {
-    loading.value = false
+    creating.value = false
   }
 }
 
 const deleteWebsite = async (domain) => {
-  if (!confirm(`Are you sure you want to delete ${domain}?`)) return
+  if (!confirm(`Delete ${domain}?`)) return
+  
+  // Optimistic UI - mark as deleting
+  const site = websites.value.find(w => w.domain === domain)
+  if (site) site._deleting = true
+  
   try {
-    loading.value = true
     await axios.delete(`/api/websites/${domain}`)
-    await fetchWebsites()
+    websites.value = websites.value.filter(w => w.domain !== domain)
   } catch (err) {
-    console.error('Failed to delete website:', err)
+    if (site) site._deleting = false
     error.value = 'Failed to delete website'
-  } finally {
-    loading.value = false
   }
 }
 
@@ -61,115 +71,219 @@ onMounted(fetchWebsites)
 </script>
 
 <template>
-  <div class="p-4 lg:p-8 space-y-6">
+  <div class="space-y-6 max-w-7xl mx-auto">
+    <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div>
-        <h2 class="text-xl lg:text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-          <Globe class="text-panda-primary" :size="24" />
-          Websites
-        </h2>
-        <p class="text-xs lg:text-sm text-gray-400">Manage your Nginx virtual hosts</p>
+        <h1 class="text-2xl font-semibold" style="color: var(--text-primary);">Sites</h1>
+        <p class="text-sm mt-1" style="color: var(--text-muted);">Manage your Nginx virtual hosts</p>
       </div>
-      <button @click="showCreateModal = true" 
-              class="w-full sm:w-auto flex items-center justify-center space-x-2 px-4 py-2 bg-panda-primary text-white rounded-xl hover:bg-panda-primary/90 transition-colors shadow-lg shadow-panda-primary/20">
-        <Plus :size="18" />
-        <span class="text-sm font-medium">Add Website</span>
+      <button @click="showCreateModal = true" class="panda-btn panda-btn-primary">
+        <Plus :size="16" />
+        <span>Add Site</span>
       </button>
     </div>
 
     <!-- Error Alert -->
-    <div v-if="error" class="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-xl flex justify-between items-center text-xs">
+    <div 
+      v-if="error" 
+      class="flex items-center justify-between px-4 py-3 rounded-lg text-sm"
+      style="background: var(--color-error-subtle); color: var(--color-error);"
+    >
       <span>{{ error }}</span>
-      <button @click="error = ''" class="hover:text-white">&times;</button>
+      <button @click="error = ''" class="hover:opacity-70">&times;</button>
     </div>
 
-    <!-- Website List -->
-    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6">
-      <div v-for="site in websites" :key="site.domain" 
-           class="bg-white/5 border border-white/5 rounded-2xl p-5 lg:p-6 hover:border-panda-primary/50 transition-all group relative">
-        <div class="flex justify-between items-start mb-4">
-          <div class="w-10 h-10 lg:w-12 lg:h-12 rounded-xl bg-panda-primary/10 flex items-center justify-center text-panda-primary">
-            <Globe :size="20" />
-          </div>
-          <button @click="deleteWebsite(site.domain)" 
-                  class="text-gray-500 hover:text-red-400 p-2 rounded-lg hover:bg-white/5 transition-colors md:opacity-0 group-hover:opacity-100">
-            <Trash2 :size="18" />
-          </button>
-        </div>
-        
-        <h3 class="text-lg font-bold text-white mb-1 truncate pr-8" :title="site.domain">{{ site.domain }}</h3>
-        <div class="space-y-2.5 text-xs lg:text-sm text-gray-400 mt-4">
-          <div class="flex items-center space-x-2">
-            <Server :size="14" class="text-gray-500" />
-            <span>Port: <span class="text-white">{{ site.port }}</span></span>
-          </div>
-          <div class="flex items-center space-x-2">
-            <Folder :size="14" class="text-gray-500" />
-            <span class="truncate" :title="site.root">{{ site.root }}</span>
-          </div>
-          <div class="flex items-center space-x-2 pt-1">
-            <span class="w-2 h-2 rounded-full" :class="site.ssl ? 'bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.5)]' : 'bg-gray-600'"></span>
-            <span :class="site.ssl ? 'text-green-400 font-medium' : 'text-gray-500'">{{ site.ssl ? 'SSL Secured' : 'No SSL' }}</span>
-          </div>
-        </div>
-      </div>
+    <!-- Websites Table (Minimal, Border-less) -->
+    <div class="panda-card !p-0 overflow-hidden" v-if="!loading">
+      <table class="panda-table">
+        <thead>
+          <tr>
+            <th>Domain</th>
+            <th class="hidden md:table-cell">Root</th>
+            <th class="hidden sm:table-cell">SSL</th>
+            <th class="w-24"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr 
+            v-for="site in websites" 
+            :key="site.domain"
+            :class="{ 'opacity-50': site._deleting, 'animate-pulse': site._creating }"
+          >
+            <td>
+              <div class="flex items-center gap-3">
+                <div 
+                  class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                  style="background: var(--color-primary-subtle);"
+                >
+                  <Globe :size="16" style="color: var(--color-primary);" />
+                </div>
+                <div>
+                  <div class="font-medium" style="color: var(--text-primary);">{{ site.domain }}</div>
+                  <div class="text-xs" style="color: var(--text-muted);">Port {{ site.port }}</div>
+                </div>
+              </div>
+            </td>
+            <td class="hidden md:table-cell">
+              <code class="text-xs px-2 py-1 rounded" style="background: var(--bg-surface); color: var(--text-secondary);">
+                {{ site.root }}
+              </code>
+            </td>
+            <td class="hidden sm:table-cell">
+              <span 
+                v-if="site.ssl"
+                class="panda-badge panda-badge-success"
+              >
+                <Lock :size="10" class="mr-1" /> Secured
+              </span>
+              <span v-else class="panda-badge" style="background: var(--bg-surface); color: var(--text-muted);">
+                No SSL
+              </span>
+            </td>
+            <td>
+              <!-- Contextual Actions - Hidden until hover -->
+              <div class="contextual-actions flex items-center gap-1 justify-end">
+                <a 
+                  :href="(site.ssl ? 'https://' : 'http://') + site.domain" 
+                  target="_blank"
+                  class="panda-btn panda-btn-ghost p-2"
+                  data-tooltip="Visit"
+                >
+                  <ExternalLink :size="14" />
+                </a>
+                <button class="panda-btn panda-btn-ghost p-2" data-tooltip="Files">
+                  <FolderOpen :size="14" />
+                </button>
+                <button 
+                  @click="deleteWebsite(site.domain)"
+                  class="panda-btn panda-btn-danger p-2"
+                  data-tooltip="Delete"
+                >
+                  <Trash2 :size="14" />
+                </button>
+              </div>
+            </td>
+          </tr>
+          
+          <!-- Empty State -->
+          <tr v-if="websites.length === 0">
+            <td colspan="4" class="text-center py-16">
+              <Globe :size="40" class="mx-auto mb-3 opacity-20" />
+              <p style="color: var(--text-muted);">No sites configured</p>
+              <button @click="showCreateModal = true" class="panda-btn panda-btn-secondary mt-4">
+                <Plus :size="14" />
+                Add your first site
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
 
-      <!-- Empty State -->
-      <div v-if="websites.length === 0 && !loading" class="col-span-full flex flex-col items-center justify-center py-20 text-gray-500 border border-dashed border-white/5 rounded-3xl bg-white/2">
-        <Globe :size="48" class="mb-4 opacity-10" />
-        <p class="text-sm">No websites configured yet</p>
-      </div>
+    <!-- Loading Skeleton -->
+    <div v-if="loading" class="panda-card !p-0 overflow-hidden">
+      <table class="panda-table">
+        <thead>
+          <tr>
+            <th>Domain</th>
+            <th class="hidden md:table-cell">Root</th>
+            <th class="hidden sm:table-cell">SSL</th>
+            <th class="w-24"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <Skeleton v-for="n in 3" :key="n" :loading="true" type="table-row" :columns="4" />
+        </tbody>
+      </table>
     </div>
 
     <!-- Create Modal -->
-    <div v-if="showCreateModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-      <div class="bg-panda-dark border border-white/10 rounded-2xl w-full max-w-md p-6 shadow-2xl">
-        <h3 class="text-xl font-bold text-white mb-6">Add New Website</h3>
-        
-        <form @submit.prevent="createWebsite" class="space-y-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-400 mb-1.5">Domain Name</label>
-            <input v-model="newWebsite.domain" type="text" required placeholder="example.com"
-                   class="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-panda-primary/50 outline-none transition-colors text-sm">
-          </div>
-          
-          <div class="grid grid-cols-3 gap-4">
-            <div class="col-span-1">
-              <label class="block text-sm font-medium text-gray-400 mb-1.5">Port</label>
-              <input v-model="newWebsite.port" type="number" required placeholder="80"
-                     class="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-panda-primary/50 outline-none transition-colors text-sm">
+    <Teleport to="body">
+      <Transition name="fade">
+        <div v-if="showCreateModal" class="fixed inset-0 z-50 flex items-center justify-center p-4" style="background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);">
+          <div 
+            class="w-full max-w-md rounded-xl overflow-hidden"
+            style="background: var(--bg-elevated); border: 1px solid var(--border-color);"
+            @click.stop
+          >
+            <!-- Modal Header -->
+            <div class="px-6 py-4 border-b" style="border-color: var(--border-color);">
+              <h3 class="text-lg font-semibold" style="color: var(--text-primary);">New Site</h3>
             </div>
-            <div class="col-span-2 text-xs text-gray-500 flex items-end pb-3 italic">
-              * Default is 80 (HTTP)
+            
+            <!-- Modal Body -->
+            <form @submit.prevent="createWebsite" class="p-6 space-y-5">
+              <div>
+                <label class="block text-sm font-medium mb-2" style="color: var(--text-secondary);">Domain</label>
+                <input 
+                  v-model="newWebsite.domain" 
+                  type="text" 
+                  required 
+                  placeholder="example.com"
+                  class="panda-input"
+                  autofocus
+                >
+              </div>
+              
+              <div class="grid grid-cols-3 gap-4">
+                <div>
+                  <label class="block text-sm font-medium mb-2" style="color: var(--text-secondary);">Port</label>
+                  <input 
+                    v-model="newWebsite.port" 
+                    type="number" 
+                    required
+                    class="panda-input"
+                  >
+                </div>
+                <div class="col-span-2">
+                  <label class="block text-sm font-medium mb-2" style="color: var(--text-secondary);">Root</label>
+                  <input 
+                    v-model="newWebsite.root" 
+                    type="text" 
+                    required
+                    class="panda-input"
+                  >
+                </div>
+              </div>
+
+              <div class="flex items-center gap-3 py-2">
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" v-model="newWebsite.ssl" class="sr-only peer">
+                  <div class="w-10 h-5 rounded-full peer peer-checked:after:translate-x-5 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:rounded-full after:h-4 after:w-4 after:transition-all" 
+                       style="background: var(--bg-surface);"
+                       :style="newWebsite.ssl ? 'background: var(--color-primary);' : ''">
+                    <div class="absolute top-[2px] left-[2px] w-4 h-4 rounded-full transition-transform" 
+                         :style="{ background: 'white', transform: newWebsite.ssl ? 'translateX(20px)' : 'translateX(0)' }"></div>
+                  </div>
+                </label>
+                <span class="text-sm" style="color: var(--text-secondary);">Enable SSL (Let's Encrypt)</span>
+              </div>
+            </form>
+            
+            <!-- Modal Footer -->
+            <div class="px-6 py-4 flex gap-3 border-t" style="border-color: var(--border-color); background: var(--bg-surface);">
+              <button @click="showCreateModal = false" class="flex-1 panda-btn panda-btn-secondary">
+                Cancel
+              </button>
+              <button @click="createWebsite" :disabled="creating" class="flex-1 panda-btn panda-btn-primary">
+                {{ creating ? 'Creating...' : 'Create Site' }}
+              </button>
             </div>
           </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-400 mb-1.5">Root Directory</label>
-            <input v-model="newWebsite.root" type="text" required placeholder="/var/www/html"
-                   class="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-panda-primary/50 outline-none transition-colors text-sm">
-          </div>
-
-          <div class="flex items-center space-x-3 py-2">
-            <label class="relative inline-flex items-center cursor-pointer">
-              <input type="checkbox" v-model="newWebsite.ssl" class="sr-only peer">
-              <div class="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-panda-primary"></div>
-              <span class="ml-3 text-sm font-medium text-gray-300">Auto-configure SSL</span>
-            </label>
-          </div>
-
-          <div class="flex space-x-3 pt-6">
-            <button type="button" @click="showCreateModal = false" 
-                    class="flex-1 px-4 py-3 bg-white/5 text-white rounded-xl hover:bg-white/10 transition-colors text-sm font-medium">
-              Cancel
-            </button>
-            <button type="submit" :disabled="loading"
-                    class="flex-1 px-4 py-3 bg-panda-primary text-white rounded-xl hover:bg-panda-primary/90 transition-all font-medium text-sm disabled:opacity-50">
-              {{ loading ? 'Configuring...' : 'Create VHost' }}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
+
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.15s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+</style>

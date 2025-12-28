@@ -1,14 +1,17 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
-import { Server, Play, Square, RotateCw, Power, FileText } from 'lucide-vue-next'
+import { Server, Play, Square, RotateCw, FileText, RefreshCw } from 'lucide-vue-next'
+import Skeleton from '../components/Skeleton.vue'
+import StatusIndicator from '../components/StatusIndicator.vue'
 
 const services = ref([])
-const loading = ref(false)
+const loading = ref(true)
 const error = ref('')
 const selectedService = ref(null)
 const logs = ref('')
 const showLogs = ref(false)
+const actionLoading = ref({})
 
 const fetchServices = async () => {
   loading.value = true
@@ -24,120 +27,204 @@ const fetchServices = async () => {
 }
 
 const serviceAction = async (name, action) => {
+  // Optimistic UI
+  actionLoading.value[name] = action
+  const svc = services.value.find(s => s.name === name)
+  const previousStatus = svc?.status
+  
+  if (svc) {
+    if (action === 'start') svc.status = 'active'
+    else if (action === 'stop') svc.status = 'inactive'
+    else if (action === 'restart') svc.status = 'restarting'
+  }
+  
   try {
     await axios.post(`/api/services/${name}/${action}`)
-    fetchServices()
+    // Refresh after a short delay to get real status
+    setTimeout(fetchServices, 500)
   } catch (err) {
-    alert(`Failed to ${action} ${name}: ` + (err.response?.data?.error || err.message))
+    // Revert on error
+    if (svc) svc.status = previousStatus
+    error.value = `Failed to ${action} ${name}`
+  } finally {
+    delete actionLoading.value[name]
   }
 }
 
 const viewLogs = async (name) => {
   selectedService.value = name
   showLogs.value = true
+  logs.value = 'Loading...'
   try {
     const res = await axios.get(`/api/services/${name}/logs?lines=100`)
     logs.value = res.data?.logs || 'No logs available'
   } catch (err) {
-    logs.value = 'Failed to load logs: ' + (err.response?.data?.error || err.message)
+    logs.value = 'Failed to load logs'
   }
 }
 
-const getStatusColor = (status) => {
-  if (status === 'active' || status === 'running') return 'bg-green-500/10 text-green-400 border-green-500/20'
-  if (status === 'failed') return 'bg-red-500/10 text-red-400 border-red-500/20'
-  return 'bg-gray-500/10 text-gray-400 border-gray-500/20'
+const getStatusType = (status) => {
+  if (status === 'active' || status === 'running') return 'online'
+  if (status === 'restarting') return 'pending'
+  if (status === 'failed') return 'offline'
+  return 'stopped'
 }
 
-onMounted(() => {
-  fetchServices()
-})
+onMounted(fetchServices)
 </script>
 
 <template>
-  <div class="p-4 lg:p-8">
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
+  <div class="space-y-6 max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div>
-        <h2 class="text-xl lg:text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-          <Server class="text-purple-400" :size="24" />
-          System Services
-        </h2>
-        <p class="text-xs lg:text-sm text-gray-400 mt-1">Manage nginx, php-fpm, mysql, etc.</p>
+        <h1 class="text-2xl font-semibold" style="color: var(--text-primary);">Services</h1>
+        <p class="text-sm mt-1" style="color: var(--text-muted);">Manage system services (nginx, php-fpm, mysql...)</p>
       </div>
-      <button @click="fetchServices" class="sm:p-2 p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-colors flex items-center justify-center gap-2">
-        <RotateCw :size="18" :class="{'animate-spin': loading}" class="text-gray-400" />
-        <span class="sm:hidden text-xs text-gray-400 font-medium font-mono uppercase tracking-widest">Refresh</span>
+      <button @click="fetchServices" class="panda-btn panda-btn-secondary">
+        <RefreshCw :size="16" :class="{ 'animate-spin': loading }" />
+        <span>Refresh</span>
       </button>
     </div>
 
-    <div v-if="error" class="bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-xl mb-6 text-xs">
-      {{ error }}
+    <!-- Error -->
+    <div v-if="error" class="flex items-center justify-between px-4 py-3 rounded-lg" style="background: var(--color-error-subtle); color: var(--color-error);">
+      <span class="text-sm">{{ error }}</span>
+      <button @click="error = ''">&times;</button>
     </div>
 
-    <div class="bg-black/20 border border-white/5 rounded-xl overflow-hidden">
-      <!-- Horizontal Scroll Wrapper -->
-      <div class="overflow-x-auto">
-        <div class="min-w-[800px]">
-          <!-- Header -->
-          <div class="grid grid-cols-12 gap-4 p-4 border-b border-white/5 text-[10px] lg:text-xs font-medium text-gray-500 uppercase tracking-widest bg-white/2">
-            <div class="col-span-3">Service</div>
-            <div class="col-span-2">Status</div>
-            <div class="col-span-2">Enabled</div>
-            <div class="col-span-3">Description</div>
-            <div class="col-span-2 text-right pr-4">Actions</div>
-          </div>
-
-          <div v-if="loading && services.length === 0" class="p-20 text-center text-gray-500 flex flex-col items-center gap-3">
-            <div class="animate-spin w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full"></div>
-            <p class="text-xs font-mono">Fetching services...</p>
-          </div>
-          <div v-else-if="services.length === 0" class="p-20 text-center text-gray-500 text-sm">No services found</div>
-
-          <div v-for="svc in services" :key="svc.name" 
-               class="grid grid-cols-12 gap-4 p-4 items-center border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors">
-            <div class="col-span-3 font-bold text-gray-200 text-sm flex items-center gap-2">
-               <div class="w-1.5 h-1.5 rounded-full" :class="svc.status === 'active' || svc.status === 'running' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-red-500'"></div>
-               {{ svc.name }}
-            </div>
-            <div class="col-span-2">
-              <span :class="getStatusColor(svc.status)" class="px-2 py-0.5 rounded-md text-[10px] border font-bold uppercase tracking-wide">
-                {{ svc.status }}
+    <!-- Services Table -->
+    <div class="panda-card !p-0 overflow-hidden">
+      <table class="panda-table">
+        <thead>
+          <tr>
+            <th>Service</th>
+            <th>Status</th>
+            <th class="hidden md:table-cell">Enabled</th>
+            <th class="hidden lg:table-cell">Description</th>
+            <th class="w-32"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Loading Skeleton -->
+          <Skeleton v-if="loading" v-for="n in 5" :key="n" :loading="true" type="table-row" :columns="5" />
+          
+          <!-- Services -->
+          <tr v-else v-for="svc in services" :key="svc.name" :class="{ 'opacity-50': actionLoading[svc.name] }">
+            <td>
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style="background: rgba(139, 92, 246, 0.1);">
+                  <Server :size="16" style="color: #8b5cf6;" />
+                </div>
+                <span class="font-medium" style="color: var(--text-primary);">{{ svc.name }}</span>
+              </div>
+            </td>
+            <td>
+              <div class="flex items-center gap-2">
+                <StatusIndicator :status="getStatusType(svc.status)" />
+                <span 
+                  class="text-xs font-medium uppercase"
+                  :style="{
+                    color: svc.status === 'active' || svc.status === 'running' ? 'var(--color-success)' : 
+                           svc.status === 'restarting' ? 'var(--color-warning)' :
+                           svc.status === 'failed' ? 'var(--color-error)' : 'var(--text-muted)'
+                  }"
+                >
+                  {{ svc.status }}
+                </span>
+              </div>
+            </td>
+            <td class="hidden md:table-cell">
+              <span 
+                class="panda-badge"
+                :class="svc.enabled ? 'panda-badge-success' : ''"
+                :style="!svc.enabled ? 'background: var(--bg-surface); color: var(--text-muted);' : ''"
+              >
+                {{ svc.enabled ? 'Enabled' : 'Disabled' }}
               </span>
-            </div>
-            <div class="col-span-2 text-gray-400 text-xs font-mono">{{ svc.enabled ? 'ENABLED' : 'DISABLED' }}</div>
-            <div class="col-span-3 text-gray-500 text-xs truncate italic" :title="svc.description">{{ svc.description }}</div>
-            <div class="col-span-2 flex items-center justify-end space-x-2 pr-2">
-              <button v-if="svc.status !== 'active' && svc.status !== 'running'" @click="serviceAction(svc.name, 'start')" 
-                      class="p-2 hover:bg-green-500/10 rounded-lg text-gray-500 hover:text-green-500 transition-colors" title="Start">
-                <Play :size="14" />
-              </button>
-              <button v-else @click="serviceAction(svc.name, 'stop')" 
-                      class="p-2 hover:bg-red-500/10 rounded-lg text-gray-500 hover:text-red-500 transition-colors" title="Stop">
-                <Square :size="14" />
-              </button>
-              <button @click="serviceAction(svc.name, 'restart')" 
-                      class="p-2 hover:bg-blue-500/10 rounded-lg text-gray-500 hover:text-blue-500 transition-colors" title="Restart">
-                <RotateCw :size="14" />
-              </button>
-              <button @click="viewLogs(svc.name)" 
-                      class="p-2 hover:bg-purple-500/10 rounded-lg text-gray-400 hover:text-purple-500 transition-colors" title="Logs">
-                <FileText :size="14" />
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+            </td>
+            <td class="hidden lg:table-cell">
+              <span class="text-sm truncate max-w-xs block" style="color: var(--text-muted);">{{ svc.description }}</span>
+            </td>
+            <td>
+              <!-- Contextual Actions -->
+              <div class="contextual-actions flex items-center gap-1 justify-end">
+                <button 
+                  v-if="svc.status !== 'active' && svc.status !== 'running'"
+                  @click="serviceAction(svc.name, 'start')"
+                  class="panda-btn panda-btn-ghost p-2"
+                  :disabled="actionLoading[svc.name]"
+                  data-tooltip="Start"
+                >
+                  <Play :size="14" style="color: var(--color-success);" />
+                </button>
+                <button 
+                  v-else
+                  @click="serviceAction(svc.name, 'stop')"
+                  class="panda-btn panda-btn-ghost p-2"
+                  :disabled="actionLoading[svc.name]"
+                  data-tooltip="Stop"
+                >
+                  <Square :size="14" style="color: var(--color-error);" />
+                </button>
+                <button 
+                  @click="serviceAction(svc.name, 'restart')"
+                  class="panda-btn panda-btn-ghost p-2"
+                  :disabled="actionLoading[svc.name]"
+                  :class="{ 'animate-spin': actionLoading[svc.name] === 'restart' }"
+                  data-tooltip="Restart"
+                >
+                  <RotateCw :size="14" style="color: var(--color-info);" />
+                </button>
+                <button 
+                  @click="viewLogs(svc.name)"
+                  class="panda-btn panda-btn-ghost p-2"
+                  data-tooltip="Logs"
+                >
+                  <FileText :size="14" />
+                </button>
+              </div>
+            </td>
+          </tr>
+          
+          <!-- Empty State -->
+          <tr v-if="!loading && services.length === 0">
+            <td colspan="5" class="text-center py-16">
+              <Server :size="40" class="mx-auto mb-3 opacity-20" />
+              <p style="color: var(--text-muted);">No services found</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
 
     <!-- Logs Modal -->
-    <div v-if="showLogs" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @click.self="showLogs = false">
-      <div class="bg-gray-900 border border-white/10 rounded-xl w-4/5 h-4/5 flex flex-col">
-        <div class="flex items-center justify-between p-4 border-b border-white/10">
-          <h3 class="text-lg font-bold text-white">Logs: {{ selectedService }}</h3>
-          <button @click="showLogs = false" class="text-gray-400 hover:text-white">&times;</button>
+    <Teleport to="body">
+      <Transition name="fade">
+        <div v-if="showLogs" class="fixed inset-0 z-50 flex items-center justify-center p-4" style="background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);" @click.self="showLogs = false">
+          <div class="w-full max-w-4xl h-[80vh] flex flex-col rounded-xl overflow-hidden" style="background: var(--bg-elevated); border: 1px solid var(--border-color);">
+            <div class="flex items-center justify-between px-6 py-4 border-b" style="border-color: var(--border-color);">
+              <div class="flex items-center gap-3">
+                <FileText :size="18" style="color: var(--color-primary);" />
+                <h3 class="text-lg font-semibold" style="color: var(--text-primary);">{{ selectedService }}</h3>
+              </div>
+              <button @click="showLogs = false" class="panda-btn panda-btn-ghost p-2" style="font-size: 20px;">&times;</button>
+            </div>
+            <pre class="flex-1 p-4 overflow-auto text-sm font-mono" style="background: var(--bg-base); color: var(--text-secondary);">{{ logs }}</pre>
+          </div>
         </div>
-        <pre class="flex-1 p-4 text-sm text-gray-300 overflow-auto font-mono bg-black/30">{{ logs }}</pre>
-      </div>
-    </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
+
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.15s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+</style>

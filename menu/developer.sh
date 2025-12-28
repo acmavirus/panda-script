@@ -1,6 +1,6 @@
 #!/bin/bash
 #================================================
-# Panda Script v2.2 - Developer Tools Menu
+# Panda Script v2.3 - Developer Tools Menu
 #================================================
 
 source "${PANDA_DIR:-/opt/panda}/core/init.sh" 2>/dev/null || true
@@ -16,6 +16,7 @@ developer_menu() {
         echo "  5. 🖼️ Media & Image Optimization"
         echo "  6. 🗄️ Database Sync & Tools"
         echo "  7. 🔀 Cloudflare Tunneling (Public Preview)"
+        echo "  8. 🔄 Deployment Workflow (Auto-Deploy)"
         echo "  0. Back"
         echo ""
         read -p "Enter your choice: " choice
@@ -38,6 +39,7 @@ developer_menu() {
             5) source "$PANDA_DIR/modules/system/optimize.sh"; optimization_menu ;;
             6) source "$PANDA_DIR/modules/mariadb/sync.sh"; sync_menu ;;
             7) source "$PANDA_DIR/modules/cloud/tunnel.sh"; tunnel_menu ;;
+            8) source "$PANDA_DIR/modules/deploy/workflow.sh"; deployment_workflow_menu ;;
             0) return ;;
             *) log_error "Invalid option"; pause ;;
         esac
