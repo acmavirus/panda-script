@@ -13,7 +13,9 @@ type AccessLogEntry struct {
 	IP       string    `json:"ip"`
 	Time     time.Time `json:"time"`
 	Method   string    `json:"method"`
+	Host     string    `json:"host"`
 	Path     string    `json:"path"`
+	URL      string    `json:"url"`
 	Status   int       `json:"status"`
 	Agent    string    `json:"agent"`
 	IsBot    bool      `json:"is_bot"`
@@ -30,12 +32,16 @@ type SecurityLogEntry struct {
 }
 
 var (
-	// Example Nginx: 127.0.0.1 - - [29/Dec/2025:03:35:12 +0700] "GET /api/health HTTP/1.1" 200 45 "-" "Mozilla/5.0..."
-	nginxRegex = regexp.MustCompile(`^(\S+) \S+ \S+ \[(.*?)\] "(.*?) (.*?) .*?" (\d+) \d+ ".*?" "(.*?)"`)
+	// Example Nginx: 127.0.0.1 - - [29/Dec/2025:03:35:12 +0700] "GET /api/health HTTP/1.1" 200 45 "http://example.com/page" "Mozilla/5.0..."
+	// Format: $remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent"
+	nginxRegex = regexp.MustCompile(`^(\S+) \S+ \S+ \[(.*?)\] "(.*?) (.*?) .*?" (\d+) \d+ "(.*?)" "(.*?)"`)
 
 	// Example Auth: Dec 29 03:35:12 panda-vps sshd[1234]: Failed password for root from 1.2.3.4 port 5678 ssh2
 	sshFailedRegex  = regexp.MustCompile(`Failed password for (?:invalid user )?(\S+) from (\S+) port \d+`)
 	sshSuccessRegex = regexp.MustCompile(`Accepted password for (\S+) from (\S+) port \d+`)
+
+	// Extract host from referer URL
+	hostRegex = regexp.MustCompile(`https?://([^/]+)`)
 )
 
 func ParseAccessLogs(limit int) ([]AccessLogEntry, error) {
@@ -69,14 +75,34 @@ func ParseAccessLogs(limit int) ([]AccessLogEntry, error) {
 	for i := len(lines) - 1; i >= start; i-- {
 		line := lines[i]
 		matches := nginxRegex.FindStringSubmatch(line)
-		if len(matches) > 6 {
+		if len(matches) > 7 {
 			status, _ := strconv.Atoi(matches[5])
+			referer := matches[6]
+			agent := matches[7]
+			path := matches[4]
+
+			// Extract host from referer or default to server
+			host := ""
+			if referer != "-" && referer != "" {
+				if hostMatch := hostRegex.FindStringSubmatch(referer); len(hostMatch) > 1 {
+					host = hostMatch[1]
+				}
+			}
+
+			// Build full URL
+			fullURL := path
+			if host != "" {
+				fullURL = host + path
+			}
+
 			entry := AccessLogEntry{
 				IP:     matches[1],
 				Method: matches[3],
-				Path:   matches[4],
+				Host:   host,
+				Path:   path,
+				URL:    fullURL,
 				Status: status,
-				Agent:  matches[6],
+				Agent:  agent,
 			}
 
 			// Parse time (Nginx format: 02/Jan/2006:15:04:05 -0700)

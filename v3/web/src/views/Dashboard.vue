@@ -311,7 +311,7 @@ onUnmounted(() => {
                       :class="log.status >= 400 ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-500'">
                   {{ log.method }} {{ log.status }}
                 </span>
-                <span class="text-xs truncate text-[var(--text-muted)]">{{ log.path }}</span>
+                <span class="text-xs truncate text-[var(--text-muted)]" :title="log.url || log.path">{{ log.url || log.path }}</span>
               </div>
             </div>
           </div>
