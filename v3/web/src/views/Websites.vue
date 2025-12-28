@@ -9,7 +9,7 @@ const showCreateModal = ref(false)
 const newWebsite = ref({
   domain: '',
   port: 80,
-  root: '/var/www',
+  root: '/home',
   ssl: false
 })
 const loading = ref(true)
@@ -40,7 +40,7 @@ const createWebsite = async () => {
     showCreateModal.value = false
     
     await axios.post('/api/websites', newWebsite.value)
-    newWebsite.value = { domain: '', port: 80, root: '/var/www', ssl: false }
+    newWebsite.value = { domain: '', port: 80, root: '/home', ssl: false }
     await fetchWebsites()
   } catch (err) {
     // Remove optimistic entry on error

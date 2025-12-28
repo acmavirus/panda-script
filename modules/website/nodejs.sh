@@ -39,7 +39,7 @@ create_node_website() {
     
     log_info "Creating Node.js website (Reverse Proxy) for $domain on port $port"
     
-    local doc_root="/var/www/$domain/public"
+    local doc_root="/home/$domain/public"
     mkdir -p "$doc_root"
     
     # Create Nginx Reverse Proxy Config
@@ -62,8 +62,8 @@ server {
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
     }
 
-    access_log /var/www/$domain/logs/access.log;
-    error_log /var/www/$domain/logs/error.log;
+    access_log /home/$domain/logs/access.log;
+    error_log /home/$domain/logs/error.log;
 }
 EOF
 

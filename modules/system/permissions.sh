@@ -10,8 +10,8 @@ fix_web_permissions() {
     
     [[ -z "$domain" ]] && { log_error "Domain required"; return 1; }
     
-    if [[ ! -d "/var/www/$domain" ]]; then
-        log_error "Directory /var/www/$domain not found!"
+    if [[ ! -d "/home/$domain" ]]; then
+        log_error "Directory /home/$domain not found!"
         return 1
     fi
     
@@ -26,32 +26,32 @@ fix_web_permissions() {
     fi
     
     # Ownership
-    chown -R "$username:www-data" "/var/www/$domain"
+    chown -R "$username:www-data" "/home/$domain"
     
     # Directories: 755, Files: 644
-    find "/var/www/$domain" -type d -exec chmod 755 {} \;
-    find "/var/www/$domain" -type f -exec chmod 644 {} \;
+    find "/home/$domain" -type d -exec chmod 755 {} \;
+    find "/home/$domain" -type f -exec chmod 644 {} \;
     
     # --- Framework Awareness ---
     
     # Laravel Detection
-    if [[ -f "/var/www/$domain/artisan" ]]; then
+    if [[ -f "/home/$domain/artisan" ]]; then
         log_info "Framework: Laravel detected. Optimizing storage and cache permissions..."
-        if [[ -d "/var/www/$domain/storage" ]]; then
-            chmod -R 775 "/var/www/$domain/storage"
+        if [[ -d "/home/$domain/storage" ]]; then
+            chmod -R 775 "/home/$domain/storage"
         fi
-        if [[ -d "/var/www/$domain/bootstrap/cache" ]]; then
-            chmod -R 775 "/var/www/$domain/bootstrap/cache"
+        if [[ -d "/home/$domain/bootstrap/cache" ]]; then
+            chmod -R 775 "/home/$domain/bootstrap/cache"
         fi
     fi
     
     # WordPress Detection
-    if [[ -f "/var/www/$domain/public/wp-config.php" ]]; then
+    if [[ -f "/home/$domain/public/wp-config.php" ]]; then
         log_info "Framework: WordPress detected. Hardening wp-config.php..."
-        chmod 440 "/var/www/$domain/public/wp-config.php"
-    elif [[ -f "/var/www/$domain/wp-config.php" ]]; then
+        chmod 440 "/home/$domain/public/wp-config.php"
+    elif [[ -f "/home/$domain/wp-config.php" ]]; then
         log_info "Framework: WordPress detected. Hardening wp-config.php..."
-        chmod 440 "/var/www/$domain/wp-config.php"
+        chmod 440 "/home/$domain/wp-config.php"
     fi
     
     log_success "Permissions fixed for $domain."

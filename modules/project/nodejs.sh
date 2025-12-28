@@ -104,7 +104,7 @@ EOF
 
 _create_nodejs_nginx() {
     local domain="$1" port="$2"
-    mkdir -p "/var/www/$domain/logs"
+    mkdir -p "/home/$domain/logs"
     cat > "/etc/nginx/sites-available/$domain" << EOF
 server {
     listen 80;
@@ -117,8 +117,8 @@ server {
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
     }
-    access_log /var/www/$domain/logs/access.log;
-    error_log /var/www/$domain/logs/error.log;
+    access_log /home/$domain/logs/access.log;
+    error_log /home/$domain/logs/error.log;
 }
 EOF
     ln -sf "/etc/nginx/sites-available/$domain" "/etc/nginx/sites-enabled/"

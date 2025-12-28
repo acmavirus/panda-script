@@ -23,7 +23,7 @@ tail_logs() {
         log_info "Monitoring logs for $domain..."
         local access_log="/var/log/nginx/${domain}.access.log"
         local error_log="/var/log/nginx/${domain}.error.log"
-        local app_log="/var/www/${domain}/storage/logs/laravel.log"
+        local app_log="/home/${domain}/storage/logs/laravel.log"
         
         [[ ! -f "$access_log" ]] && access_log="/var/log/nginx/access.log"
         [[ ! -f "$error_log" ]] && error_log="/var/log/nginx/error.log"

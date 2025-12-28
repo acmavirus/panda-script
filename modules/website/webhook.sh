@@ -9,7 +9,7 @@ setup_webhook() {
     local domain="$1"
     [[ -z "$domain" ]] && { log_error "Domain required"; return 1; }
     
-    local public_root="/var/www/$domain/public"
+    local public_root="/home/$domain/public"
     [[ ! -d "$public_root" ]] && { log_error "Public root $public_root not found."; return 1; }
     
     local secret=$(generate_password 16)

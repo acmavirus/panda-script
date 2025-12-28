@@ -14,7 +14,7 @@ const tools = ref([
 
 const phpExtensions = ref([])
 const loadingExt = ref(false)
-const wpPath = ref('/var/www/')
+const wpPath = ref('/home/')
 const wpCommand = ref('core version')
 const wpOutput = ref('')
 
@@ -138,20 +138,6 @@ onMounted(() => {
     </div>
 
     <!-- WP-CLI Console -->
-    <div class="bg-black/20 border border-white/5 rounded-2xl p-4 lg:p-6 mb-8 shadow-2xl">
-      <h3 class="text-base font-bold text-white mb-4 flex items-center gap-2 uppercase tracking-widest">
-        <Download :size="18" class="text-blue-400" /> WP-CLI Console
-      </h3>
-      <div class="flex flex-col lg:flex-row gap-4 mb-4">
-        <div class="flex-1 space-y-1">
-           <label class="text-[10px] font-bold text-gray-500 uppercase pl-1">Working Directory</label>
-           <input v-model="wpPath" type="text" placeholder="/var/www/domain.com" 
-                  class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-white font-mono text-sm focus:border-blue-500/50 outline-none transition-all" />
-        </div>
-        <div class="flex-1 space-y-1">
-           <label class="text-[10px] font-bold text-gray-500 uppercase pl-1">WP Command (no 'wp' prefix)</label>
-           <div class="relative">
-             <input v-model="wpCommand" type="text" placeholder="plugin list --status=active" 
                     class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-white font-mono text-sm focus:border-blue-500/50 outline-none transition-all" />
              <button @click="runWPCLI" class="absolute right-1 top-1 h-8 w-12 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all flex items-center justify-center">
                <Play :size="14" />

@@ -47,7 +47,7 @@ setup_deployment() {
     local name=$(prompt "Deployment name")
     local repo_url=$(prompt "GitHub/GitLab repository URL")
     local branch=$(prompt "Branch" "main")
-    local deploy_path=$(prompt "Deploy path" "/var/www")
+    local deploy_path=$(prompt "Deploy path" "/home")
     local project_type=$(prompt "Type (php/nodejs/python/java/static)" "php")
     
     [[ -z "$name" ]] || [[ -z "$repo_url" ]] && { log_error "Name and repo required"; pause; return 1; }
@@ -226,7 +226,7 @@ configure_auto_deploy() {
     log_info "Creating Webhook endpoint..."
     
     # Create webhook PHP script
-    local webhook_dir="/var/www/webhooks"
+    local webhook_dir="/home/webhooks"
     mkdir -p "$webhook_dir"
     
     cat > "$webhook_dir/$name-webhook.php" << 'PHPEOF'
@@ -309,10 +309,10 @@ remove_deployment() {
     [[ "$c" != "y" ]] && return
     
     rm -f "$DEPLOY_CONFIG_DIR/$name.conf"
-    rm -f "/var/www/webhooks/$name-webhook.php"
+    rm -f "/home/webhooks/$name-webhook.php"
     
     log_success "Deployment config removed"
-    log_warning "Project files NOT deleted: /var/www/$name"
+    log_warning "Project files NOT deleted: /home/$name"
     pause
 }
 

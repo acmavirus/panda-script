@@ -32,7 +32,7 @@ func ListWebsites() ([]Website, error) {
 			sites = append(sites, Website{
 				Domain: f.Name(),
 				Port:   80, // Default, as parsing might be complex
-				Root:   "/var/www/html",
+				Root:   "/home",
 				SSL:    false,
 			})
 		}

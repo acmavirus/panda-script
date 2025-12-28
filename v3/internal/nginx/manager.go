@@ -14,7 +14,7 @@ import (
 const (
 	SitesAvailable = "/etc/nginx/sites-available"
 	SitesEnabled   = "/etc/nginx/sites-enabled"
-	WebRoot        = "/var/www"
+	WebRoot        = "/home"
 )
 
 type VhostConfig struct {
@@ -60,8 +60,8 @@ const vhostTemplate = `server {
     root {{.Root}};
     index index.php index.html;
     
-    access_log /var/www/{{.Domain}}/logs/access.log;
-    error_log /var/www/{{.Domain}}/logs/error.log;
+    access_log /home/{{.Domain}}/logs/access.log;
+    error_log /home/{{.Domain}}/logs/error.log;
     
     # Security headers
     add_header X-Frame-Options "SAMEORIGIN" always;

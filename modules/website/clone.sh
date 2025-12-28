@@ -11,8 +11,8 @@ clone_website() {
     
     [[ -z "$source_domain" ]] || [[ -z "$target_domain" ]] && { log_error "Source and Target domains required"; return 1; }
     
-    if [[ ! -d "/var/www/$source_domain" ]]; then
-        log_error "Source website /var/www/$source_domain not found!"
+    if [[ ! -d "/home/$source_domain" ]]; then
+        log_error "Source website /home/$source_domain not found!"
         return 1
     fi
     
@@ -22,14 +22,14 @@ clone_website() {
     source "$PANDA_DIR/modules/website/create.sh"
     create_website "$target_domain"
     
-    local source_root="/var/www/$source_domain/public"
-    local target_root="/var/www/$target_domain/public"
+    local source_root="/home/$source_domain/public"
+    local target_root="/home/$target_domain/public"
     local target_user=$(echo "$target_domain" | tr '.' '_' | cut -c1-16)
     
     # 2. Copy files
     log_info "Copying files..."
     cp -rp "$source_root/." "$target_root/"
-    chown -R "$target_user:$target_user" "/var/www/$target_domain"
+    chown -R "$target_user:$target_user" "/home/$target_domain"
     
     # 3. Clone Database (Optional - search for wp-config or similar)
     if [[ -f "$target_root/wp-config.php" ]]; then
@@ -46,7 +46,7 @@ clone_wordpress_db() {
     local target_root="$3"
     
     # Get source DB info
-    local source_root="/var/www/$source_domain/public"
+    local source_root="/home/$source_domain/public"
     local db_name=$(grep DB_NAME "$source_root/wp-config.php" | cut -d\' -f4)
     
     # Create new DB

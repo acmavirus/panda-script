@@ -27,7 +27,7 @@ EOF
 enabled = true
 port = http,https
 filter = wordpress-login
-logpath = /var/www/*/logs/access.log
+logpath = /home/*/logs/access.log
 maxretry = 5
 findtime = 600
 bantime = 3600

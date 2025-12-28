@@ -45,7 +45,7 @@ convert_to_webp() {
 
 optimization_menu() {
     local domain=$(prompt "Enter domain to optimize")
-    local site_root="/var/www/$domain"
+    local site_root="/home/$domain"
     
     [[ ! -d "$site_root" ]] && { log_error "Domain not found."; pause; return; }
     

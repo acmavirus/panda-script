@@ -17,17 +17,17 @@ create_website() {
     log_info "Creating website: $domain"
     
     local username=$(echo "$domain" | tr '.' '_' | cut -c1-16)
-    local doc_root="/var/www/$domain/public"
+    local doc_root="/home/$domain/public"
     
     # Create user
     if ! id "$username" &>/dev/null; then
-        useradd -m -d "/var/www/$domain" -s /bin/bash "$username"
+        useradd -m -d "/home/$domain" -s /bin/bash "$username"
     fi
     
     # Create directories
     mkdir -p "$doc_root"
-    mkdir -p "/var/www/$domain/logs"
-    mkdir -p "/var/www/$domain/tmp"
+    mkdir -p "/home/$domain/logs"
+    mkdir -p "/home/$domain/tmp"
     
     # Create vhost
     source "$PANDA_DIR/modules/nginx/vhost.sh"
@@ -37,8 +37,8 @@ create_website() {
     create_php_pool "$domain" "$username" "$php_version"
     
     # Set permissions
-    chown -R "$username:$username" "/var/www/$domain"
-    chmod 755 "/var/www/$domain"
+    chown -R "$username:$username" "/home/$domain"
+    chmod 755 "/home/$domain"
     
     # Save to database
     db_query "INSERT INTO websites (domain, username, document_root, php_version) VALUES ('$domain', '$username', '$doc_root', '$php_version')"
@@ -69,7 +69,7 @@ pm.start_servers = 2
 pm.min_spare_servers = 1
 pm.max_spare_servers = 3
 pm.max_requests = 500
-php_admin_value[open_basedir] = /var/www/$domain:/tmp
+php_admin_value[open_basedir] = /home/$domain:/tmp
 php_admin_value[disable_functions] = exec,passthru,shell_exec,system,proc_open,popen
 EOF
 
@@ -86,7 +86,7 @@ delete_website() {
         
         rm -f "/etc/nginx/sites-enabled/$domain"*
         rm -f "/etc/nginx/sites-available/$domain"*
-        rm -rf "/var/www/$domain"
+        rm -rf "/home/$domain"
         userdel -r "$username" 2>/dev/null
         
         db_query "DELETE FROM websites WHERE domain='$domain'"

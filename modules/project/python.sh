@@ -213,7 +213,7 @@ EOF
 _create_python_nginx() {
     local domain="$1" port="$2"
     
-    local log_dir="/var/www/$domain/logs"
+    local log_dir="/home/$domain/logs"
     mkdir -p "$log_dir"
     
     cat > "/etc/nginx/sites-available/$domain" << EOF

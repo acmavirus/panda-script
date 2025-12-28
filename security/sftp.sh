@@ -12,8 +12,8 @@ create_sftp_user() {
     
     [[ -z "$domain" ]] || [[ -z "$sftp_user" ]] && { log_error "Domain and SFTP user required"; return 1; }
     
-    if [[ ! -d "/var/www/$domain" ]]; then
-        log_error "Domain directory /var/www/$domain doesn't exist."
+    if [[ ! -d "/home/$domain" ]]; then
+        log_error "Domain directory /home/$domain doesn't exist."
         return 1
     fi
     
@@ -23,15 +23,15 @@ create_sftp_user() {
     groupadd sftp_users 2>/dev/null
     
     # Create user with jail
-    useradd -g sftp_users -d "/var/www/$domain" -s /sbin/nologin "$sftp_user"
+    useradd -g sftp_users -d "/home/$domain" -s /sbin/nologin "$sftp_user"
     echo "$sftp_user:$sftp_pass" | chpasswd
     
     # Secure home for chroot (must be owned by root)
-    chown root:root "/var/www/$domain"
-    chmod 755 "/var/www/$domain"
+    chown root:root "/home/$domain"
+    chmod 755 "/home/$domain"
     
     # Ensure public folder is owned by user
-    chown -R "$sftp_user:sftp_users" "/var/www/$domain/public"
+    chown -R "$sftp_user:sftp_users" "/home/$domain/public"
     
     # Update SSH Config for SFTP Chroot if not already done
     if ! grep -q "Match Group sftp_users" /etc/ssh/sshd_config; then
@@ -46,7 +46,7 @@ EOF
         systemctl restart ssh
     fi
     
-    log_success "SFTP user $sftp_user created and jailed to /var/www/$domain"
+    log_success "SFTP user $sftp_user created and jailed to /home/$domain"
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then

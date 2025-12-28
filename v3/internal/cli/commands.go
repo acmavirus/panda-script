@@ -40,10 +40,10 @@ func RegisterWebsiteCommands(rootCmd *cobra.Command) {
 		Run: func(cmd *cobra.Command, args []string) {
 			domain := args[0]
 			if runtime.GOOS == "linux" {
-				system.Execute("mkdir -p /var/www/" + domain)
-				system.Execute("chown -R www-data:www-data /var/www/" + domain)
+				system.Execute("mkdir -p /home/" + domain)
+				system.Execute("chown -R www-data:www-data /home/" + domain)
 			}
-			db.DB.Create(&db.Website{Domain: domain, Root: "/var/www/" + domain})
+			db.DB.Create(&db.Website{Domain: domain, Root: "/home/" + domain})
 			fmt.Printf("✅ Created %s\n", domain)
 		},
 	})
@@ -97,7 +97,7 @@ func RegisterBackupCommands(rootCmd *cobra.Command) {
 			if runtime.GOOS == "linux" {
 				filename := fmt.Sprintf("/opt/panda/backups/website_%s_%s.tar.gz", args[0], time.Now().Format("20060102_150405"))
 				system.Execute("mkdir -p /opt/panda/backups")
-				system.Execute(fmt.Sprintf("tar -czf %s -C /var/www %s", filename, args[0]))
+				system.Execute(fmt.Sprintf("tar -czf %s -C /home %s", filename, args[0]))
 				fmt.Printf("✅ Backup: %s\n", filename)
 			}
 		},

@@ -9,7 +9,7 @@ source "${PANDA_DIR:-/opt/panda}/core/init.sh" 2>/dev/null || true
 create_vhost() {
     local domain="$1"
     local php_version="${2:-8.3}"
-    local doc_root="${3:-/var/www/$domain/public}"
+    local doc_root="${3:-/home/$domain/public}"
     
     [[ -z "$domain" ]] && { log_error "Domain required"; return 1; }
     
@@ -17,7 +17,7 @@ create_vhost() {
     
     # Create directories
     mkdir -p "$doc_root"
-    mkdir -p "/var/www/$domain/logs"
+    mkdir -p "/home/$domain/logs"
     
     # Create vhost config
     cat > "/etc/nginx/sites-available/$domain" << EOF
@@ -29,8 +29,8 @@ server {
     root $doc_root;
     index index.php index.html;
     
-    access_log /var/www/$domain/logs/access.log;
-    error_log /var/www/$domain/logs/error.log;
+    access_log /home/$domain/logs/access.log;
+    error_log /home/$domain/logs/error.log;
     
     # Security headers
     add_header X-Frame-Options "SAMEORIGIN" always;
@@ -76,7 +76,7 @@ EOF
     echo "<?php phpinfo();" > "$doc_root/index.php"
     
     # Set permissions
-    chown -R www-data:www-data "/var/www/$domain"
+    chown -R www-data:www-data "/home/$domain"
 }
 
 delete_vhost() {
@@ -108,7 +108,7 @@ server {
     listen [::]:443 ssl http2;
     
     server_name $domain www.$domain;
-    root /var/www/$domain/public;
+    root /home/$domain/public;
     index index.php index.html;
     
     ssl_certificate $cert_path/fullchain.pem;

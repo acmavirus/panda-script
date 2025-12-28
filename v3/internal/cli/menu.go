@@ -129,7 +129,7 @@ func createWebsite() {
 		return
 	}
 
-	webRoot := "/var/www/" + domain
+	webRoot := "/home/" + domain
 	system.Execute("mkdir -p " + webRoot)
 	system.Execute("chown -R www-data:www-data " + webRoot)
 
@@ -145,7 +145,7 @@ func deleteWebsite() {
 	if strings.ToLower(confirm) == "y" {
 		db.DB.Where("domain = ?", domain).Delete(&db.Website{})
 		if runtime.GOOS == "linux" {
-			system.Execute("rm -rf /var/www/" + domain)
+			system.Execute("rm -rf /home/" + domain)
 		}
 		fmt.Println(Green + "✅ Website đã được xóa!" + Reset)
 	}
@@ -164,7 +164,7 @@ func installWordPress() {
 		return
 	}
 
-	webRoot := "/var/www/" + domain
+	webRoot := "/home/" + domain
 	fmt.Println("⏳ Đang tải WordPress...")
 
 	system.Execute("mkdir -p " + webRoot)
@@ -223,7 +223,7 @@ func backupMenu() {
 		if runtime.GOOS == "linux" {
 			filename := fmt.Sprintf("/opt/panda/backups/website_%s_%s.tar.gz", domain, time.Now().Format("20060102_150405"))
 			system.Execute("mkdir -p /opt/panda/backups")
-			system.Execute(fmt.Sprintf("tar -czf %s -C /var/www %s", filename, domain))
+			system.Execute(fmt.Sprintf("tar -czf %s -C /home %s", filename, domain))
 			fmt.Printf(Green+"✅ Backup: %s\n"+Reset, filename)
 		}
 		pause()

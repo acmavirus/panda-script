@@ -10,7 +10,7 @@ deploy_site() {
     
     [[ -z "$domain" ]] && { log_error "Domain required"; return 1; }
     
-    local site_root="/var/www/$domain"
+    local site_root="/home/$domain"
     local public_root="$site_root/public"
     
     if [[ ! -d "$site_root" ]]; then
@@ -70,7 +70,7 @@ setup_git_repo() {
     
     [[ -z "$domain" ]] || [[ -z "$repo_url" ]] && { log_error "Domain and Repo URL required"; return 1; }
     
-    local site_root="/var/www/$domain"
+    local site_root="/home/$domain"
     mkdir -p "$site_root"
     cd "$site_root"
     

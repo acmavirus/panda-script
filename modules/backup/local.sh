@@ -28,7 +28,7 @@ backup_all() {
     log_info "Creating full backup..."
     
     # Backup websites
-    tar -czf "$backup_file" /var/www 2>/dev/null
+    tar -czf "$backup_file" /home 2>/dev/null
     
     # Backup databases
     backup_all_databases "$timestamp"
@@ -50,8 +50,8 @@ backup_website() {
     
     log_info "Backing up $domain..."
     
-    if [[ -d "/var/www/$domain" ]]; then
-        tar -czf "$backup_file" -C /var/www "$domain"
+    if [[ -d "/home/$domain" ]]; then
+        tar -czf "$backup_file" -C /home "$domain"
         log_success "Website backup: $backup_file"
     else
         log_error "Website not found: $domain"

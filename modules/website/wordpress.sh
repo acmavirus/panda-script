@@ -11,7 +11,7 @@ install_wordpress() {
     [[ -z "$domain" ]] && { log_error "Domain required"; return 1; }
     
     # Ensure website exists first
-    if [[ ! -d "/var/www/$domain" ]]; then
+    if [[ ! -d "/home/$domain" ]]; then
         log_info "Website directory not found. Creating website first..."
         source "$PANDA_DIR/modules/website/create.sh"
         create_website "$domain"
@@ -24,7 +24,7 @@ install_wordpress() {
         install_wp_cli
     fi
     
-    local doc_root="/var/www/$domain/public"
+    local doc_root="/home/$domain/public"
     local username=$(echo "$domain" | tr '.' '_' | cut -c1-16)
     
     # Database config

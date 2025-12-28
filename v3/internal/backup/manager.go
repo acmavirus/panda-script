@@ -15,7 +15,7 @@ import (
 
 const (
 	BackupDir = "/opt/panda/backups"
-	WebRoot   = "/var/www"
+	WebRoot   = "/home"
 )
 
 type BackupInfo struct {
