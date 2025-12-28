@@ -2,9 +2,10 @@
 import { ref, onMounted, computed } from 'vue'
 import { 
   LayoutDashboard, Globe, Database, HardDrive, Terminal, Settings, 
-  Bell, Search, User, Activity, LogOut, Server, Code, Lock, Shield, 
+  Bell, Search, User, LogOut, Server, Code, Lock, Shield, 
   Archive, Cpu, Users, Store, Stethoscope, Wrench, Sun, Moon, Menu, X, 
-  Package, Rocket, ChevronDown, Command
+  Package, Rocket, ChevronDown, ChevronRight, FolderOpen, Clock,
+  Activity, Container
 } from 'lucide-vue-next'
 import { useAuthStore } from '../stores/auth'
 import { useThemeStore } from '../stores/theme'
@@ -17,32 +18,67 @@ const router = useRouter()
 const sidebarOpen = ref(false)
 const commandPaletteRef = ref(null)
 
-// Simplified menu - "Know How to Refuse" philosophy
-const menuItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
-  { icon: Globe, label: 'Sites', path: '/websites' },
-  { icon: Database, label: 'Databases', path: '/databases' },
-  { icon: HardDrive, label: 'Files', path: '/files' },
-  { icon: Terminal, label: 'Terminal', path: '/terminal' },
-  { divider: true },
-  { icon: Server, label: 'Services', path: '/services' },
-  { icon: Code, label: 'PHP', path: '/php' },
-  { icon: Lock, label: 'SSL', path: '/ssl' },
-  { icon: Shield, label: 'Security', path: '/security' },
-  { icon: Archive, label: 'Backup', path: '/backup' },
-  { divider: true },
-  { icon: Package, label: 'Projects', path: '/projects', badge: 'NEW' },
-  { icon: Rocket, label: 'CMS', path: '/cms', badge: 'NEW' },
-  { icon: Store, label: 'Apps', path: '/apps' },
-  { icon: Wrench, label: 'Tools', path: '/tools' },
-  { divider: true },
-  { icon: Stethoscope, label: 'Health', path: '/health' },
-  { icon: Users, label: 'Users', path: '/users' },
-  { icon: Settings, label: 'Settings', path: '/settings' },
+// Collapsible menu groups
+const expandedGroups = ref({
+  deployment: true,
+  management: false,
+  environment: false,
+  infrastructure: false
+})
+
+const toggleGroup = (group) => {
+  expandedGroups.value[group] = !expandedGroups.value[group]
+}
+
+// Grouped Menu Structure (4 Pillars)
+const menuGroups = [
+  {
+    id: 'deployment',
+    label: 'Deployment',
+    icon: Rocket,
+    items: [
+      { icon: Globe, label: 'Websites', path: '/websites' },
+      { icon: Package, label: 'Projects', path: '/projects', badge: 'NEW' },
+      { icon: Container, label: 'Docker', path: '/docker' },
+      { icon: Database, label: 'Databases', path: '/databases' },
+    ]
+  },
+  {
+    id: 'management',
+    label: 'Management',
+    icon: FolderOpen,
+    items: [
+      { icon: HardDrive, label: 'Files', path: '/files' },
+      { icon: Archive, label: 'Backups', path: '/backup' },
+      { icon: Clock, label: 'Cron Jobs', path: '/cron' },
+    ]
+  },
+  {
+    id: 'environment',
+    label: 'Environment',
+    icon: Wrench,
+    items: [
+      { icon: Code, label: 'PHP Manager', path: '/php' },
+      { icon: Server, label: 'Nginx', path: '/nginx' },
+      { icon: Lock, label: 'SSL', path: '/ssl' },
+      { icon: Store, label: 'App Store', path: '/apps' },
+    ]
+  },
+  {
+    id: 'infrastructure',
+    label: 'Infrastructure',
+    icon: Shield,
+    items: [
+      { icon: Shield, label: 'Security', path: '/security' },
+      { icon: Activity, label: 'System Health', path: '/health' },
+      { icon: Terminal, label: 'Terminal', path: '/terminal' },
+      { icon: Settings, label: 'Settings', path: '/settings' },
+    ]
+  }
 ]
 
 // System health status
-const systemHealth = ref('healthy') // healthy, warning, critical
+const systemHealth = ref('healthy')
 
 const handleLogout = () => {
   authStore.logout()
@@ -57,8 +93,20 @@ const openCommandPalette = () => {
   commandPaletteRef.value?.open()
 }
 
+// Check if any item in group is active
+const isGroupActive = (group) => {
+  return group.items.some(item => router.currentRoute.value.path === item.path)
+}
+
 onMounted(() => {
   themeStore.loadTheme()
+  
+  // Auto-expand group containing active route
+  menuGroups.forEach(group => {
+    if (isGroupActive(group)) {
+      expandedGroups.value[group.id] = true
+    }
+  })
 })
 </script>
 
@@ -72,9 +120,9 @@ onMounted(() => {
       <div v-if="sidebarOpen" @click="closeSidebar" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"></div>
     </Transition>
     
-    <!-- Sidebar - Minimal & Clean -->
+    <!-- Sidebar - Grouped Structure -->
     <aside :class="[
-      'fixed lg:static inset-y-0 left-0 z-50 w-56 flex flex-col transition-transform duration-300',
+      'fixed lg:static inset-y-0 left-0 z-50 w-60 flex flex-col transition-transform duration-300',
       'border-r border-[var(--border-color)]',
       sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
     ]" style="background: var(--bg-elevated);">
@@ -95,36 +143,69 @@ onMounted(() => {
         </button>
       </div>
 
-      <!-- Navigation -->
-      <nav class="flex-1 overflow-y-auto py-3 px-2">
-        <template v-for="(item, index) in menuItems" :key="index">
-          <!-- Divider -->
-          <div v-if="item.divider" class="my-2 border-t border-[var(--border-color)]"></div>
-          
-          <!-- Menu Item -->
-          <router-link 
-            v-else
-            :to="item.path" 
-            @click="closeSidebar"
-            class="group flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150"
-            :class="$route.path === item.path 
-              ? 'bg-[var(--color-primary-subtle)] text-[var(--color-primary)]' 
-              : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]'"
+      <!-- Dashboard Link -->
+      <div class="px-2 py-3">
+        <router-link 
+          to="/" 
+          @click="closeSidebar"
+          class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-all"
+          :class="$route.path === '/' 
+            ? 'bg-[var(--color-primary-subtle)] text-[var(--color-primary)]' 
+            : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]'"
+        >
+          <LayoutDashboard :size="16" />
+          <span>Dashboard</span>
+        </router-link>
+      </div>
+
+      <!-- Grouped Navigation -->
+      <nav class="flex-1 overflow-y-auto px-2 pb-3">
+        <div v-for="group in menuGroups" :key="group.id" class="mb-1">
+          <!-- Group Header -->
+          <button 
+            @click="toggleGroup(group.id)"
+            class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-[11px] font-semibold uppercase tracking-wider transition-colors"
+            :class="isGroupActive(group) ? 'text-[var(--color-primary)]' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'"
           >
-            <component :is="item.icon" :size="16" class="flex-shrink-0" />
-            <span class="flex-1">{{ item.label }}</span>
-            <span v-if="item.badge" class="panda-badge panda-badge-new text-[9px]">{{ item.badge }}</span>
-          </router-link>
-        </template>
+            <div class="flex items-center gap-2">
+              <component :is="group.icon" :size="14" />
+              <span>{{ group.label }}</span>
+            </div>
+            <ChevronDown 
+              :size="14" 
+              class="transition-transform duration-200"
+              :class="{ 'rotate-180': !expandedGroups[group.id] }"
+            />
+          </button>
+          
+          <!-- Group Items -->
+          <Transition name="slide">
+            <div v-if="expandedGroups[group.id]" class="mt-1 space-y-0.5 pl-2">
+              <router-link 
+                v-for="item in group.items"
+                :key="item.path"
+                :to="item.path" 
+                @click="closeSidebar"
+                class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-all"
+                :class="$route.path === item.path 
+                  ? 'bg-[var(--color-primary-subtle)] text-[var(--color-primary)]' 
+                  : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]'"
+              >
+                <component :is="item.icon" :size="15" class="flex-shrink-0" />
+                <span class="flex-1">{{ item.label }}</span>
+                <span v-if="item.badge" class="panda-badge panda-badge-new text-[9px]">{{ item.badge }}</span>
+              </router-link>
+            </div>
+          </Transition>
+        </div>
       </nav>
 
       <!-- Logout -->
       <div class="p-2 border-t border-[var(--border-color)]">
         <button 
           @click="handleLogout" 
-          class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors"
+          class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors hover:bg-[var(--color-error-subtle)]"
           style="color: var(--color-error);"
-          :class="'hover:bg-[var(--color-error-subtle)]'"
         >
           <LogOut :size="16" />
           <span>Logout</span>
@@ -149,7 +230,7 @@ onMounted(() => {
           <!-- Global Search (Ctrl+K) -->
           <button 
             @click="openCommandPalette"
-            class="hidden md:flex items-center gap-3 w-64 lg:w-80 px-3 py-2 rounded-lg border transition-colors"
+            class="hidden md:flex items-center gap-3 w-64 lg:w-80 px-3 py-2 rounded-lg border transition-colors hover:border-[var(--border-color-hover)]"
             style="background: var(--bg-surface); border-color: var(--border-color);"
           >
             <Search :size="16" style="color: var(--text-muted);" />
@@ -165,12 +246,13 @@ onMounted(() => {
         <div class="flex items-center gap-2">
           <!-- System Health Badge -->
           <div 
-            class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium"
+            class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer"
             :class="{
               'bg-[var(--color-success-subtle)] text-[var(--color-success)]': systemHealth === 'healthy',
               'bg-[var(--color-warning-subtle)] text-[var(--color-warning)]': systemHealth === 'warning',
               'bg-[var(--color-error-subtle)] text-[var(--color-error)]': systemHealth === 'critical'
             }"
+            @click="$router.push('/health')"
           >
             <span class="status-indicator" :class="systemHealth === 'healthy' ? 'online' : systemHealth"></span>
             <span>{{ systemHealth === 'healthy' ? 'All Systems' : systemHealth === 'warning' ? 'Warning' : 'Critical' }}</span>
@@ -180,7 +262,7 @@ onMounted(() => {
           <button 
             @click="themeStore.toggleTheme" 
             class="p-2 rounded-lg transition-colors hover:bg-[var(--bg-hover)]"
-            data-tooltip="Toggle Theme"
+            data-tooltip="Toggle Theme (⌘T)"
           >
             <Sun v-if="themeStore.theme === 'dark'" :size="18" style="color: var(--text-muted);" />
             <Moon v-else :size="18" style="color: var(--text-muted);" />
@@ -205,7 +287,7 @@ onMounted(() => {
         </div>
       </header>
 
-      <!-- Page Content - Generous White Space -->
+      <!-- Page Content -->
       <div class="flex-1 p-4 lg:p-8">
         <router-view></router-view>
       </div>
@@ -218,9 +300,18 @@ onMounted(() => {
 .fade-leave-active {
   transition: opacity 0.2s ease;
 }
-
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+.slide-enter-active,
+.slide-leave-active {
+  transition: all 0.2s ease;
+}
+.slide-enter-from,
+.slide-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
 }
 </style>

@@ -1,405 +1,327 @@
-# Panda Script - Tổng hợp Chức năng v2.3
+# Panda Script - Kiến trúc Chức năng v2.3
 
-## Tổng quan
-
-Panda Script là bộ công cụ quản lý server Linux toàn diện:
-- **CLI (v2.3)**: Bash scripts chạy trực tiếp trên terminal
-- **Web Panel (v3)**: Giao diện web với Go backend + Vue.js frontend
+> **Triết lý thiết kế**: Sắp xếp theo **Mục đích sử dụng**, không phải theo chức năng kỹ thuật
 
 ---
 
-# � CÁC NHÓM CHỨC NĂNG
+# 🎯 CẤU TRÚC WEB PANEL v3
 
----
-
-## 🌐 NHÓM 1: WEB & APPLICATIONS
-
-> **Mục đích**: Quản lý toàn bộ web hosting - từ tạo website, cấu hình Nginx, SSL, đến triển khai ứng dụng Node.js/Python/Java
-
-### 1.1 Website Management
-
-| CLI Module | Chức năng |
-|------------|-----------|
-| `modules/website/create.sh` | Tạo website mới |
-| `modules/website/clone.sh` | Clone website |
-| `modules/website/wordpress.sh` | Cài WordPress |
-| `modules/website/wp_cli.sh` | Quản lý WP-CLI |
-| `modules/website/cms_installer.sh` | One-Click CMS (9 loại) |
-
-**CMS được hỗ trợ**: WordPress, WooCommerce, Joomla, Drupal, PrestaShop, OpenCart, MediaWiki, phpBB, phpMyAdmin
-
-### 1.2 Nginx Configuration
-
-| CLI Module | Chức năng |
-|------------|-----------|
-| `modules/nginx/install.sh` | Cài đặt Nginx |
-| `modules/nginx/vhost.sh` | Virtual hosts |
-| `modules/nginx/optimize.sh` | Tối ưu performance |
-| `modules/nginx/logs.sh` | Phân tích logs |
-
-### 1.3 SSL/HTTPS
-
-| CLI Module | Chức năng |
-|------------|-----------|
-| `modules/ssl/certbot.sh` | Let's Encrypt certificates |
-
-**Tính năng**: Obtain, Renew, Auto-renew, Revoke
-
-### 1.4 Project Managers (Node.js, Python, Java)
-
-| CLI Module | Chức năng |
-|------------|-----------|
-| `modules/project/nodejs.sh` | Node.js + PM2 cluster |
-| `modules/project/python.sh` | Python + Virtualenv + Gunicorn/Uvicorn |
-| `modules/project/java.sh` | Java + Spring Boot + Maven |
-| `modules/website/nodejs.sh` | Node.js websites |
-
-**Framework hỗ trợ**:
-- Node.js: Express, NestJS, Next.js, Nuxt.js
-- Python: Flask, Django, FastAPI
-- Java: Spring Boot
-
-### 1.5 Deployment
-
-| CLI Module | Chức năng |
-|------------|-----------|
-| `modules/website/deploy.sh` | Simple deployment |
-| `modules/website/webhook.sh` | Webhook setup |
-| `modules/deploy/workflow.sh` | GitHub auto-deploy |
-
-### Web Panel Components
-
-| Component | Chức năng |
-|-----------|-----------|
-| `Websites.vue` | CRUD websites |
-| `CMSInstaller.vue` | Visual CMS installer |
-| `Projects.vue` | Node.js/Python/Java manager |
-| `SSL.vue` | SSL certificates |
-
-### API Routes Summary
+## Sidebar (4 Nhóm Trụ cột)
 
 ```
-# Websites
-GET/POST/DELETE /api/websites/
+🚀 DEPLOYMENT (Tài nguyên chính)
+├── Websites          -> Create: Empty / CMS / App
+├── Projects          -> Node.js, Python, Java
+├── Docker            -> Containers
+└── Databases         -> MariaDB
 
-# CMS
-GET  /api/cms/
-POST /api/cms/install
+📂 MANAGEMENT (Quản lý & Vận hành)
+├── File Manager      -> Browse, Edit, Upload
+├── Backups           -> Local & Cloud
+└── Cron Jobs         -> Scheduled tasks
 
-# Nginx
-GET/POST/DELETE /api/nginx/vhosts/
-POST /api/nginx/ssl/:domain
-POST /api/nginx/reload
+🛠️ ENVIRONMENT (Cấu hình môi trường)
+├── PHP Manager       -> Versions & Extensions
+├── Nginx Config      -> Vhosts, Optimization
+├── SSL Certificates  -> Let's Encrypt
+└── App Store         -> Redis, Memcached, Tools
 
-# SSL
-GET  /api/ssl/
-POST /api/ssl/obtain
-POST /api/ssl/renew/:domain
-
-# Projects
-GET/POST /api/nodejs/pm2
-GET/POST/DELETE /api/python/projects
-GET/POST /api/java/projects
-POST /api/clone
-
-# Deployment
-GET/POST/DELETE /api/deploy/
-POST /api/deploy/:name/trigger
+🛡️ INFRASTRUCTURE (Bảo mật & Hệ thống)
+├── Security          -> Firewall, SSH, Fail2Ban
+├── System Health     -> Stats, Logs, Processes
+├── Web Terminal      -> Shell in browser
+└── Settings          -> Users, 2FA, Panel Config
 ```
 
 ---
 
-## � NHÓM 2: DATA MANAGEMENT
+## Luồng "Create Website" (3 lựa chọn)
 
-> **Mục đích**: Quản lý databases, backup/restore, file manager
-
-### 2.1 Database (MariaDB)
-
-| CLI Module | Chức năng |
-|------------|-----------|
-| `modules/mariadb/install.sh` | Cài đặt MariaDB |
-| `modules/mariadb/slow_query.sh` | Phân tích slow queries |
-| `modules/mariadb/sync.sh` | Đồng bộ database |
-
-### 2.2 Backup & Restore
-
-| CLI Module | Chức năng |
-|------------|-----------|
-| `modules/backup/local.sh` | Local backup |
-| `modules/backup/restore.sh` | Restore backup |
-| `modules/cloud/rclone.sh` | Cloud backup (S3, GDrive...) |
-| `modules/cloud/gdrive.sh` | Google Drive sync |
-
-### 2.3 File Manager
-
-**Web Panel Only** - Quản lý files qua browser
-
-### Web Panel Components
-
-| Component | Chức năng |
-|-----------|-----------|
-| `Databases.vue` | CRUD databases, users |
-| `Backup.vue` | Backup/restore |
-| `FileManager.vue` | File browser, editor |
-
-### API Routes Summary
+Khi nhấn **"Add Site"** trong Websites:
 
 ```
-# Database
-GET/POST/DELETE /api/databases/
-POST /api/databases/query
-POST /api/databases/:name/backup
-
-# Backup
-GET  /api/backup/
-POST /api/backup/website/:domain
-POST /api/backup/database/:name
-POST /api/backup/full
-POST /api/rclone/sync
-
-# Files
-GET  /api/files/list
-GET  /api/files/read
-POST /api/files/write
-POST /api/files/upload
-POST /api/files/compress
+┌─────────────────────────────────────────────────┐
+│         What would you like to create?          │
+├─────────────────────────────────────────────────┤
+│                                                 │
+│  📄 Empty Site                                  │
+│     Blank website, upload your own code         │
+│                                                 │
+│  🚀 CMS One-Click                               │
+│     WordPress, Joomla, Drupal, WooCommerce...   │
+│                                                 │
+│  💻 App/Project                                 │
+│     Node.js, Python, Java application           │
+│                                                 │
+└─────────────────────────────────────────────────┘
 ```
 
 ---
 
-## �️ NHÓM 3: SECURITY & ACCESS
+## Smart Dashboard (Action-oriented)
 
-> **Mục đích**: Bảo mật server, quản lý users và quyền truy cập
-
-### 3.1 Firewall & SSH
-
-| CLI Module | Chức năng |
-|------------|-----------|
-| `modules/security/guard.sh` | Fail2Ban, hardening |
-| `modules/security/ssh_port.sh` | Đổi SSH port |
-
-### 3.2 User Management
-
-**Web Panel** - Multi-user với roles và 2FA
-
-### Web Panel Components
-
-| Component | Chức năng |
-|-----------|-----------|
-| `Security.vue` | Firewall rules, IP whitelist |
-| `Users.vue` | Multi-user management |
-| `Login.vue` | Authentication |
-
-### API Routes Summary
+Thay vì chỉ hiện charts, hiện **Quick Actions**:
 
 ```
-# Firewall
-GET  /api/security/firewall
-POST /api/security/firewall/enable
-POST /api/security/whitelist
-POST /api/security/blacklist
-PUT  /api/security/ssh-port
-
-# Auth & Users
-POST /api/auth/login
-GET/POST/DELETE /api/users/
-POST /api/2fa/setup
-POST /api/2fa/verify
-GET  /api/whitelist/
+┌─ Quick Actions ─────────────────────────────────┐
+│                                                 │
+│  [+ New Website]  [🔧 Fix Permissions]  [📋 Logs] │
+│                                                 │
+│  Recent Sites:                                  │
+│  • example.com     [Manage] [SSL] [Files]       │
+│  • myapp.dev       [Manage] [SSL] [Files]       │
+│                                                 │
+└─────────────────────────────────────────────────┘
 ```
 
 ---
 
-## � NHÓM 4: SYSTEM & MONITORING
+## Contextual SSL
 
-> **Mục đích**: Giám sát, tối ưu hệ thống
-
-### 4.1 System Management
-
-| CLI Module | Chức năng |
-|------------|-----------|
-| `modules/system/clean.sh` | Dọn dẹp hệ thống |
-| `modules/system/cron.sh` | Quản lý cron jobs |
-| `modules/system/optimize.sh` | Tối ưu hệ thống |
-| `modules/system/permissions.sh` | Fix permissions |
-| `modules/system/swap.sh` | Quản lý swap |
-
-### 4.2 PHP Management
-
-| CLI Module | Chức năng |
-|------------|-----------|
-| `modules/php/install.sh` | Multi PHP versions |
-| `modules/php/switch.sh` | Switch version |
-| `modules/php/extensions.sh` | Extensions manager |
-| `modules/performance/opcache.sh` | OPCache config |
-
-### 4.3 Services & Processes
-
-**Web Panel** - Quản lý systemd services, kill processes
-
-### Web Panel Components
-
-| Component | Chức năng |
-|-----------|-----------|
-| `Dashboard.vue` | System stats, charts |
-| `Services.vue` | Service manager |
-| `Processes.vue` | Process manager |
-| `PHP.vue` | PHP versions, extensions |
-| `HealthCheck.vue` | Health check |
-| `Terminal.vue` | Web terminal |
-
-### API Routes Summary
+SSL button ngay trong danh sách Websites:
 
 ```
-# System
-GET  /api/system/stats
-GET  /api/health/check
-POST /api/system/update
-
-# Services
-GET  /api/services/
-POST /api/services/:name/:action
-
-# Processes
-GET  /api/processes/
-DELETE /api/processes/:pid
-
-# PHP
-GET  /api/php/versions
-POST /api/php/install
-POST /api/php/switch
-GET  /api/php/extensions
-POST /api/php/extensions/install
+┌─ Websites ──────────────────────────────────────┐
+│ Domain            SSL        Actions            │
+├─────────────────────────────────────────────────┤
+│ example.com       🔒 Active  [Manage] [Files]   │
+│ newsite.com       [Enable]   [Manage] [Files]   │
+│                    ↑                            │
+│            Click to install SSL instantly       │
+└─────────────────────────────────────────────────┘
 ```
 
 ---
 
-## � NHÓM 5: DOCKER & APPS
+## Command Palette (Ctrl+K)
 
-> **Mục đích**: Quản lý containers và cài đặt ứng dụng
+Gõ bất kỳ từ khóa nào:
 
-### 5.1 Docker
+| Gõ | Kết quả |
+|----|---------|
+| `wp` | Hiện các site WordPress |
+| `log` | Mở xem logs |
+| `ssl` | Quản lý SSL |
+| `restart` | Restart services |
+| `backup` | Tạo backup |
 
-| CLI Module | Chức năng |
-|------------|-----------|
-| `modules/docker/manage.sh` | Docker management |
+---
 
-### 5.2 App Store & Dev Tools
+# 🖥️ CẤU TRÚC CLI v2.3
 
-**Web Panel** - Cài đặt tools như Redis, Memcached, ClamAV...
-
-### Web Panel Components
-
-| Component | Chức năng |
-|-----------|-----------|
-| `Docker.vue` | Container manager |
-| `Tools.vue` | Dev tools installer |
-| `AppStore.vue` | App marketplace |
-
-### API Routes Summary
+## Menu Chính (7 mục - Quy tắc ghi nhớ)
 
 ```
-# Docker
-GET  /api/docker/containers
-POST /api/docker/containers/:id/:action
-
-# Apps
-GET  /api/apps/
-POST /api/apps/:slug/install
-POST /api/apps/:slug/uninstall
-
-# Cache & Tools
-POST /api/cache/redis/install
-POST /api/cache/memcached/install
-POST /api/scan/clamav/install
-GET  /api/tools/status
+╔══════════════════════════════════════════════════════════════╗
+║          🐼 Panda Script v2.3 - High Performance LEMP        ║
+╠══════════════════════════════════════════════════════════════╣
+║                                                              ║
+║  1. 🌐 Websites    → Create, Delete, CMS, Clone, WP-CLI      ║
+║  2. 📦 Projects    → Node.js, Python, Java Manager           ║
+║  3. 🗄️ Databases   → MariaDB, Sync, Slow Query               ║
+║  4. ⚙️ Services    → PHP, Nginx, SSL, Docker, Redis          ║
+║  5. 🛡️ Security    → Firewall, SSH, Guard, Permissions       ║
+║  6. 🔧 System      → Backup, Monitor, Tools, Cleanup         ║
+║  7. 🎛️ Panel       → v3 Web Panel, Update, Settings          ║
+║                                                              ║
+║  0. ❌ Exit                                                   ║
+║                                                              ║
+╚══════════════════════════════════════════════════════════════╝
 ```
 
 ---
 
-# � TỔNG KẾT
+## Menu Con Chi tiết
 
-## Thống kê
-
-| Nhóm | CLI Modules | Vue Components | Mô tả |
-|------|-------------|----------------|-------|
-| Web & Apps | 18 | 4 | Websites, Nginx, SSL, Projects, Deploy |
-| Data | 7 | 3 | Database, Backup, Files |
-| Security | 3 | 3 | Firewall, SSH, Users, 2FA |
-| System | 9 | 6 | Monitoring, PHP, Services, Terminal |
-| Docker & Apps | 1 | 3 | Containers, Dev Tools |
-| **TOTAL** | **38** | **19** | |
-
-## Menu Structure (CLI)
-
+### 1. 🌐 Websites
 ```
-🐼 Panda Script v2.3
-├── 1. 🌐 Website Management
-│   ├── Create Website
-│   ├── Delete Website
-│   ├── List Websites
-│   ├── WordPress Install
-│   ├── Node.js Website
-│   ├── Clone Website
-│   ├── WP-CLI Management
-│   └── One-Click CMS (NEW!)
-│
-├── 2. 🗄️ Database Management
-├── 3. 🔐 SSL Management
-├── 4. 🐘 PHP Management
-├── 5. 🔧 Nginx Management
-├── 6. 🐳 Docker Management
-├── 7. 💾 Backup & Restore
-├── 8. 🛡️ Security
-├── 9. 📊 System Monitoring
-├── 10. 🚀 Performance
-├── 11. ⚙️ System Tools
-├── 12. ☁️ Cloud Backup
-├── 13. 👨‍💻 Developer Tools
-│   ├── Simple Deployment
-│   ├── Setup Webhook
-│   └── Deployment Workflow (NEW!)
-│
-└── 14. 📦 Project Manager (NEW!)
-    ├── Node.js Projects
-    ├── Python Projects
-    └── Java Projects
+├── 1. Create Website
+│   ├── Empty Site
+│   ├── CMS One-Click (9 loại)
+│   └── WordPress with WP-CLI
+├── 2. Delete Website
+├── 3. List Websites
+├── 4. Clone Website
+├── 5. WP-CLI Management
+└── 0. Back
 ```
 
-## Sidebar Structure (Web Panel v3)
-
+### 2. 📦 Projects
 ```
-🐼 Panda Panel v3
-├── Dashboard
-├── Sites (Websites)
-├── Databases
-├── Files
-├── Terminal
-├── ─────────────
-├── Services
-├── PHP
-├── SSL
-├── Security
-├── Backup
-├── ─────────────
-├── Projects (NEW!)
-├── CMS Install (NEW!)
-├── Apps
-├── Tools
-├── ─────────────
-├── Health
-├── Users
-└── Settings
+├── 1. Node.js Manager
+│   ├── Create Project
+│   ├── Clone from GitHub
+│   ├── PM2 Dashboard
+│   └── Start/Stop/Restart
+├── 2. Python Manager
+│   ├── Create Project (Flask/Django/FastAPI)
+│   ├── Clone from GitHub
+│   └── Virtualenv Management
+├── 3. Java Manager
+│   ├── Create Spring Boot
+│   └── Maven/Gradle Build
+├── 4. Deployment Workflow
+│   ├── Setup Auto-Deploy
+│   ├── GitHub Webhook
+│   └── View Deploy Logs
+└── 0. Back
+```
+
+### 3. 🗄️ Databases
+```
+├── 1. Create Database
+├── 2. Delete Database
+├── 3. List Databases
+├── 4. Create User
+├── 5. Sync Database
+├── 6. Slow Query Analysis
+└── 0. Back
+```
+
+### 4. ⚙️ Services
+```
+├── 1. PHP Manager
+│   ├── Install Version
+│   ├── Switch Version
+│   ├── Extensions
+│   └── php.ini Config
+├── 2. Nginx Manager
+│   ├── Test Config
+│   ├── Reload
+│   └── Optimize
+├── 3. SSL Manager
+│   ├── Obtain Certificate
+│   ├── Renew All
+│   └── Check Expiry
+├── 4. Docker Manager
+├── 5. Redis/Memcached
+└── 0. Back
+```
+
+### 5. 🛡️ Security
+```
+├── 1. Firewall (UFW)
+├── 2. Change SSH Port
+├── 3. Fail2Ban Setup
+├── 4. Fix Permissions
+├── 5. Security Hardening
+└── 0. Back
+```
+
+### 6. 🔧 System
+```
+├── 1. Backup Manager
+│   ├── Create Backup
+│   ├── Restore Backup
+│   ├── Cloud Backup (Rclone)
+│   └── Schedule Backup
+├── 2. System Monitor
+│   ├── Resource Usage
+│   ├── View Logs
+│   └── Process Manager
+├── 3. Performance
+│   ├── Swap Management
+│   ├── OPCache Config
+│   └── System Optimize
+├── 4. System Cleanup
+├── 5. Cron Jobs
+└── 0. Back
+```
+
+### 7. 🎛️ Panel
+```
+├── 1. Open Web Panel (v3)
+├── 2. Panel Settings
+├── 3. Change Panel Port
+├── 4. Enable Panel SSL
+├── 5. Update Panda Script
+└── 0. Back
 ```
 
 ---
 
-## Kết luận
+# 📊 MAPPING: CLI ↔ WEB PANEL
 
-Sau khi gộp, Panda Script có **5 nhóm chức năng chính**:
+| CLI Menu | Web Panel Section |
+|----------|-------------------|
+| 1. Websites | 🚀 DEPLOYMENT → Websites |
+| 2. Projects | 🚀 DEPLOYMENT → Projects |
+| 3. Databases | 🚀 DEPLOYMENT → Databases |
+| 4. Services → PHP | 🛠️ ENVIRONMENT → PHP Manager |
+| 4. Services → Nginx | 🛠️ ENVIRONMENT → Nginx Config |
+| 4. Services → SSL | 🛠️ ENVIRONMENT → SSL Certificates |
+| 4. Services → Docker | 🚀 DEPLOYMENT → Docker |
+| 5. Security | 🛡️ INFRASTRUCTURE → Security |
+| 6. System → Backup | � MANAGEMENT → Backups |
+| 6. System → Monitor | 🛡️ INFRASTRUCTURE → System Health |
+| 7. Panel | 🛡️ INFRASTRUCTURE → Settings |
 
-1. **🌐 Web & Applications** - Tất cả về web hosting
-2. **💾 Data Management** - Database, backup, files
-3. **🛡️ Security & Access** - Bảo mật và users
-4. **📊 System & Monitoring** - Hệ thống và PHP
-5. **🐳 Docker & Apps** - Containers và tools
+---
+
+# 🎨 UX IMPROVEMENTS
+
+## 1. Global Search (Ctrl+K) ✅
+- Đã implement trong `CommandPalette.vue`
+- Tìm kiếm pages, actions, commands
+
+## 2. Smart Dashboard ✅
+- Quick Actions: New Website, Fix Permissions, View Logs
+- Recent Sites với nút Manage/SSL/Files
+
+## 3. Contextual SSL ✅
+- Nút Enable SSL ngay trong table Websites
+- One-click SSL installation
+
+## 4. Skeleton Loading ✅
+- Thay spinner bằng skeleton screens
+- Perceived performance tốt hơn
+
+## 5. Optimistic UI ✅
+- Actions update ngay lập tức
+- Revert nếu API fail
+
+## 6. Keyboard First ✅
+- Ctrl+K: Command Palette
+- Ctrl+T: Toggle Theme
+- Arrow keys: Navigate
+- Enter: Select
+
+---
+
+# 📁 FILES CẦN UPDATE
+
+## Web Panel (v3)
+
+### Sidebar Restructure
+- `MainLayout.vue` - Grouped sidebar với collapsible sections
+
+### Website Flow
+- `Websites.vue` - Add "Create Type" modal
+- Gộp CMS vào luồng tạo website
+
+### Dashboard
+- `Dashboard.vue` - Quick Actions + Recent Sites
+
+## CLI
+
+### Main Menu
+- `menu/main.sh` - 7 mục thay vì 14
+
+### Submenu Restructure
+- Gộp các menu nhỏ vào 7 nhóm lớn
+
+---
+
+# 🏆 SO SÁNH VỚI CLOUDPANEL/AAPANEL
+
+| Feature | CloudPanel | aaPanel | Panda v3 |
+|---------|------------|---------|----------|
+| Grouped Sidebar | ✅ | ❌ | ✅ |
+| Command Palette | ❌ | ❌ | ✅ |
+| Contextual SSL | ❌ | ✅ | ✅ |
+| Skeleton Loading | ❌ | ❌ | ✅ |
+| Optimistic UI | ❌ | ❌ | ✅ |
+| Keyboard Shortcuts | ❌ | ❌ | ✅ |
+| CMS in Website Flow | ❌ | ✅ | ✅ |
+| Project Managers | ❌ | ❌ | ✅ |
+| CLI + Web Panel | ❌ | ❌ | ✅ |
