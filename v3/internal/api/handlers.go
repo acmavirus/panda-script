@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -538,4 +539,30 @@ func GetSecurityLogsHandler(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, entries)
+}
+
+// InstallDockerHandler installs Docker on the server
+func InstallDockerHandler(c *gin.Context) {
+	if runtime.GOOS == "windows" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Docker installation requires Linux"})
+		return
+	}
+
+	// Check if docker already exists
+	_, err := exec.Command("which", "docker").Output()
+	if err == nil {
+		c.JSON(http.StatusOK, gin.H{"message": "Docker is already installed"})
+		return
+	}
+
+	// Install Docker
+	cmd := exec.Command("bash", "-c", "apt-get update && apt-get install -y docker.io && systemctl start docker && systemctl enable docker")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to install Docker: " + string(output)})
+		return
+	}
+
+	CreateNotification("success", "Docker Installed", "Docker has been installed successfully")
+	c.JSON(http.StatusOK, gin.H{"message": "Docker installed successfully"})
 }

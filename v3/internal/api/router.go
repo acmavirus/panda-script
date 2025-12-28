@@ -17,6 +17,7 @@ func RegisterRoutes(r *gin.RouterGroup) {
 	{
 		protected.GET("/system/stats", SystemStatsHandler)
 		protected.POST("/system/update", UpdateSystemHandler)
+		protected.POST("/system/install-docker", InstallDockerHandler)
 		protected.POST("/user/password", ChangePasswordHandler)
 
 		// Docker
