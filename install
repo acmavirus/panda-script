@@ -1,5 +1,6 @@
+#!/bin/bash
 # Panda Panel v3.1.0 - Unified Installer
-# Includes: CLI Menu + Web Panel + Scripts
+# Includes: LEMP Stack + CLI Menu + Web Panel
 #================================================
 
 set -e
@@ -14,7 +15,7 @@ NC='\033[0m'
 
 echo -e "${CYAN}╔══════════════════════════════════════════════╗${NC}"
 echo -e "${CYAN}║       🐼 PANDA SCRIPT v3.1.0 INSTALLER       ║${NC}"
-echo -e "${CYAN}║       High Performance LEMP + Panel v3.1.0   ║${NC}"
+echo -e "${CYAN}║       High Performance LEMP + Panel          ║${NC}"
 echo -e "${CYAN}╚══════════════════════════════════════════════╝${NC}"
 echo ""
 
@@ -36,20 +37,119 @@ INSTALL_DIR="/opt/panda"
 REPO_URL="https://github.com/acmavirus/panda-script.git"
 
 #================================================
-# Step 1: Install dependencies
+# Step 1: Update system & Install dependencies
 #================================================
-echo -e "${BLUE}[1/5] Installing dependencies...${NC}"
-if command -v apt-get &>/dev/null; then
+echo -e "${BLUE}[1/7] Updating system & Installing dependencies...${NC}"
+export DEBIAN_FRONTEND=noninteractive
+
+apt-get update -qq
+apt-get install -y curl wget git sqlite3 unzip jq gnupg2 ca-certificates lsb-release software-properties-common 2>/dev/null || true
+
+#================================================
+# Step 2: Install Nginx
+#================================================
+echo -e "${BLUE}[2/7] Installing Nginx...${NC}"
+if ! command -v nginx &>/dev/null; then
+    apt-get install -y nginx
+    systemctl start nginx
+    systemctl enable nginx
+    echo -e "${GREEN}✓ Nginx installed${NC}"
+else
+    echo -e "${YELLOW}✓ Nginx already installed${NC}"
+fi
+
+# Create sites directories if not exist
+mkdir -p /etc/nginx/sites-available
+mkdir -p /etc/nginx/sites-enabled
+
+#================================================
+# Step 3: Install PHP 8.3
+#================================================
+echo -e "${BLUE}[3/7] Installing PHP 8.3...${NC}"
+if ! command -v php8.3 &>/dev/null; then
+    add-apt-repository -y ppa:ondrej/php 2>/dev/null || true
     apt-get update -qq
-    apt-get install -y curl git sqlite3 unzip jq &>/dev/null || apt-get install -y curl git sqlite3 unzip
-elif command -v dnf &>/dev/null; then
-    dnf install -y curl git sqlite || dnf install -y curl git sqlite3
+    apt-get install -y php8.3 php8.3-fpm php8.3-cli php8.3-common \
+        php8.3-mysql php8.3-zip php8.3-gd php8.3-mbstring php8.3-curl \
+        php8.3-xml php8.3-bcmath php8.3-intl php8.3-readline \
+        php8.3-opcache php8.3-soap php8.3-imagick php8.3-redis 2>/dev/null || \
+    apt-get install -y php php-fpm php-cli php-common php-mysql php-zip php-gd php-mbstring php-curl php-xml
+    
+    systemctl start php8.3-fpm 2>/dev/null || systemctl start php-fpm 2>/dev/null || true
+    systemctl enable php8.3-fpm 2>/dev/null || systemctl enable php-fpm 2>/dev/null || true
+    echo -e "${GREEN}✓ PHP installed${NC}"
+else
+    echo -e "${YELLOW}✓ PHP already installed${NC}"
 fi
 
 #================================================
-# Step 2: Clone repository
+# Step 4: Install MariaDB
 #================================================
-echo -e "${BLUE}[2/5] Cloning Panda Script repository...${NC}"
+echo -e "${BLUE}[4/7] Installing MariaDB...${NC}"
+if ! command -v mariadb &>/dev/null && ! command -v mysql &>/dev/null; then
+    apt-get install -y mariadb-server mariadb-client
+    systemctl start mariadb
+    systemctl enable mariadb
+    
+    # Secure installation (set root password)
+    MYSQL_ROOT_PASS=$(openssl rand -base64 12)
+    mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '${MYSQL_ROOT_PASS}';" 2>/dev/null || true
+    mysql -e "DELETE FROM mysql.user WHERE User='';" 2>/dev/null || true
+    mysql -e "FLUSH PRIVILEGES;" 2>/dev/null || true
+    
+    # Save credentials
+    echo "MYSQL_ROOT_PASS=${MYSQL_ROOT_PASS}" > /etc/panda/.mysql_credentials
+    chmod 600 /etc/panda/.mysql_credentials
+    
+    echo -e "${GREEN}✓ MariaDB installed (root password saved to /etc/panda/.mysql_credentials)${NC}"
+else
+    echo -e "${YELLOW}✓ MariaDB/MySQL already installed${NC}"
+fi
+
+#================================================
+# Step 5: Install Docker
+#================================================
+echo -e "${BLUE}[5/7] Installing Docker...${NC}"
+if ! command -v docker &>/dev/null; then
+    apt-get install -y docker.io
+    systemctl start docker
+    systemctl enable docker
+    echo -e "${GREEN}✓ Docker installed${NC}"
+else
+    echo -e "${YELLOW}✓ Docker already installed${NC}"
+fi
+
+#================================================
+# Step 6: Install additional tools
+#================================================
+echo -e "${BLUE}[6/7] Installing additional tools...${NC}"
+
+# Certbot for SSL
+if ! command -v certbot &>/dev/null; then
+    apt-get install -y certbot python3-certbot-nginx 2>/dev/null || apt-get install -y certbot
+    echo -e "${GREEN}✓ Certbot installed${NC}"
+fi
+
+# Composer
+if ! command -v composer &>/dev/null; then
+    curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer 2>/dev/null || true
+    echo -e "${GREEN}✓ Composer installed${NC}"
+fi
+
+# WP-CLI
+if ! command -v wp &>/dev/null; then
+    curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar 2>/dev/null
+    chmod +x wp-cli.phar
+    mv wp-cli.phar /usr/local/bin/wp
+    echo -e "${GREEN}✓ WP-CLI installed${NC}"
+fi
+
+#================================================
+# Step 7: Clone Panda Script & Setup Panel
+#================================================
+echo -e "${BLUE}[7/7] Setting up Panda Panel...${NC}"
+
+# Clone repository
 if [ -d "$INSTALL_DIR" ]; then
     echo "Updating existing installation..."
     cd "$INSTALL_DIR"
@@ -58,26 +158,21 @@ else
     git clone "$REPO_URL" "$INSTALL_DIR"
 fi
 
-#================================================
-# Step 3: Setup directories and permissions
-#================================================
-echo -e "${BLUE}[3/5] Setting up directories...${NC}"
+# Setup directories
 mkdir -p "$INSTALL_DIR/data"
 mkdir -p "$INSTALL_DIR/logs"
 mkdir -p "$INSTALL_DIR/databases"
 mkdir -p "$INSTALL_DIR/backups"
 mkdir -p /etc/panda
 mkdir -p /var/log/panda
+mkdir -p /home
 
 # Set permissions for CLI scripts
 chmod +x "$INSTALL_DIR/menu/"*.sh 2>/dev/null || true
 chmod +x "$INSTALL_DIR/modules/"**/*.sh 2>/dev/null || true
 chmod +x "$INSTALL_DIR/core/"*.sh 2>/dev/null || true
 
-#================================================
-# Step 4: Setup Panel binary
-#================================================
-echo -e "${BLUE}[4/5] Setting up Panel binary...${NC}"
+# Setup Panel binary
 PANEL_BINARY="$INSTALL_DIR/v3/panda-linux"
 if [ -f "$PANEL_BINARY" ]; then
     chmod +x "$PANEL_BINARY"
@@ -87,14 +182,11 @@ fi
 # Create symlink for CLI
 ln -sf "$INSTALL_DIR/menu/main.sh" /usr/local/bin/panda
 
-#================================================
-# Step 5: Setup systemd service
-#================================================
-echo -e "${BLUE}[5/5] Setting up systemd service...${NC}"
+# Setup systemd service
 cat > /etc/systemd/system/panda.service <<EOF
 [Unit]
 Description=Panda Panel v3
-After=network.target
+After=network.target nginx.service mariadb.service
 
 [Service]
 Type=simple
@@ -133,9 +225,23 @@ echo -e "${GREEN}═════════════════════
 echo -e "${GREEN}✅ Panda Script v3.1.0 installed successfully!${NC}"
 echo -e "${GREEN}══════════════════════════════════════════════════${NC}"
 echo ""
+echo -e "${CYAN}📦 Installed Components:${NC}"
+echo -e "   ✓ Nginx (Web Server)"
+echo -e "   ✓ PHP 8.3 + Extensions"
+echo -e "   ✓ MariaDB (MySQL)"
+echo -e "   ✓ Docker"
+echo -e "   ✓ Certbot (SSL)"
+echo -e "   ✓ Composer"
+echo -e "   ✓ WP-CLI"
+echo ""
 echo -e "${CYAN}🌐 Web Panel:${NC}  http://${PUBLIC_IP}:${PANEL_PORT}/panda"
 echo -e "${CYAN}🔑 Login:${NC}      admin / admin"
 echo -e "${CYAN}💻 CLI Menu:${NC}   panda"
+echo ""
+echo -e "${YELLOW}MySQL Credentials:${NC}"
+if [ -f /etc/panda/.mysql_credentials ]; then
+    cat /etc/panda/.mysql_credentials
+fi
 echo ""
 echo -e "${YELLOW}Quick Commands:${NC}"
 echo -e "  panda              - Open CLI menu"
