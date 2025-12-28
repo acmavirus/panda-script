@@ -234,33 +234,10 @@ func ToggleIPWhitelistHandler(c *gin.Context) {
 }
 
 // ============================================================================
-// Notification Handlers
+// Notification Helper (actual handlers in handlers_projects.go)
 // ============================================================================
 
-func ListNotificationsHandler(c *gin.Context) {
-	var notifications []db.Notification
-	db.DB.Order("created_at DESC").Limit(50).Find(&notifications)
-	c.JSON(http.StatusOK, notifications)
-}
-
-func MarkNotificationReadHandler(c *gin.Context) {
-	id := c.Param("id")
-	db.DB.Model(&db.Notification{}).Where("id = ?", id).Update("read", true)
-	c.JSON(http.StatusOK, gin.H{"message": "Marked as read"})
-}
-
-func MarkAllNotificationsReadHandler(c *gin.Context) {
-	db.DB.Model(&db.Notification{}).Where("read = ?", false).Update("read", true)
-	c.JSON(http.StatusOK, gin.H{"message": "All notifications marked as read"})
-}
-
-func GetUnreadCountHandler(c *gin.Context) {
-	var count int64
-	db.DB.Model(&db.Notification{}).Where("read = ?", false).Count(&count)
-	c.JSON(http.StatusOK, gin.H{"count": count})
-}
-
-// CreateNotification is a helper function
+// CreateNotification is a helper function to create notifications in DB
 func CreateNotification(notifType, title, message string) {
 	notification := db.Notification{
 		Type:    notifType,
