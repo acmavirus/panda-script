@@ -11,12 +11,15 @@ import { useAuthStore } from '../stores/auth'
 import { useThemeStore } from '../stores/theme'
 import { useRouter } from 'vue-router'
 import CommandPalette from '../components/CommandPalette.vue'
+import NotificationPanel from '../components/NotificationPanel.vue'
 
 const authStore = useAuthStore()
 const themeStore = useThemeStore()
 const router = useRouter()
 const sidebarOpen = ref(false)
 const commandPaletteRef = ref(null)
+const notificationPanelOpen = ref(false)
+const unreadNotificationCount = ref(0)
 
 // Collapsible menu groups
 const expandedGroups = ref({
@@ -269,9 +272,15 @@ onMounted(() => {
           </button>
           
           <!-- Notifications -->
-          <button class="relative p-2 rounded-lg transition-colors hover:bg-[var(--bg-hover)]">
+          <button @click="notificationPanelOpen = true" class="relative p-2 rounded-lg transition-colors hover:bg-[var(--bg-hover)]">
             <Bell :size="18" style="color: var(--text-muted);" />
-            <span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full" style="background: var(--color-primary);"></span>
+            <span 
+              v-if="unreadNotificationCount > 0"
+              class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
+              style="background: var(--color-primary);"
+            >
+              {{ unreadNotificationCount > 9 ? '9+' : unreadNotificationCount }}
+            </span>
           </button>
           
           <!-- User -->
@@ -292,6 +301,13 @@ onMounted(() => {
         <router-view></router-view>
       </div>
     </main>
+    
+    <!-- Notification Panel -->
+    <NotificationPanel 
+      :show="notificationPanelOpen" 
+      @close="notificationPanelOpen = false"
+      @update:count="unreadNotificationCount = $event"
+    />
   </div>
 </template>
 

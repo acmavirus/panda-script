@@ -171,10 +171,14 @@ func RegisterRoutes(r *gin.RouterGroup) {
 		// Notifications
 		notifGroup := protected.Group("/notifications")
 		{
-			notifGroup.GET("/", ListNotificationsHandler)
-			notifGroup.GET("/unread", GetUnreadCountHandler)
+			notifGroup.GET("/", GetNotificationsHandler)
 			notifGroup.POST("/:id/read", MarkNotificationReadHandler)
 			notifGroup.POST("/read-all", MarkAllNotificationsReadHandler)
+			notifGroup.DELETE("/", ClearNotificationsHandler)
+			notifGroup.GET("/config", GetNotificationConfigHandler)
+			notifGroup.PUT("/config", UpdateNotificationConfigHandler)
+			notifGroup.POST("/test/telegram", TestTelegramHandler)
+			notifGroup.POST("/test/email", TestEmailHandler)
 		}
 
 		// Users (Multi-User)

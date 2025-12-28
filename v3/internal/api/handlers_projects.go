@@ -1,11 +1,15 @@
 package api
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -53,7 +57,7 @@ func InstallCMSHandler(c *gin.Context) {
 		return
 	}
 
-	// Run CLI installer
+	// Run CLI installer with /home path
 	cmd := exec.Command("bash", "-c", fmt.Sprintf(
 		"source /opt/panda/modules/website/cms_installer.sh && install_cms %s <<< '%s'",
 		req.CMSType, req.Domain,
@@ -64,6 +68,9 @@ func InstallCMSHandler(c *gin.Context) {
 		c.JSON(500, gin.H{"error": string(output)})
 		return
 	}
+
+	// Send notification
+	SendNotification("CMS Installed", fmt.Sprintf("%s installed on %s", req.CMSType, req.Domain), "success")
 
 	c.JSON(200, CMSResponse{
 		Success:  true,
@@ -104,7 +111,7 @@ type PythonProject struct {
 // ListPythonProjectsHandler - List all Python projects
 func ListPythonProjectsHandler(c *gin.Context) {
 	projects := []PythonProject{}
-	projectsDir := "/opt/python-apps"
+	projectsDir := "/home/python-apps"
 
 	entries, err := os.ReadDir(projectsDir)
 	if err != nil {
@@ -127,7 +134,6 @@ func ListPythonProjectsHandler(c *gin.Context) {
 			Path: filepath.Join(projectsDir, entry.Name()),
 		}
 
-		// Parse config
 		configData, _ := os.ReadFile(configPath)
 		for _, line := range strings.Split(string(configData), "\n") {
 			parts := strings.SplitN(line, "=", 2)
@@ -146,7 +152,6 @@ func ListPythonProjectsHandler(c *gin.Context) {
 			}
 		}
 
-		// Get status
 		cmd := exec.Command("systemctl", "is-active", fmt.Sprintf("python-%s", entry.Name()))
 		output, _ := cmd.Output()
 		project.Status = strings.TrimSpace(string(output))
@@ -188,6 +193,8 @@ create_python_project_api "%s" "%s" %d "%s"
 		return
 	}
 
+	SendNotification("Project Created", fmt.Sprintf("Python project %s created", req.Name), "success")
+
 	c.JSON(200, ProjectResponse{
 		Success: true,
 		Message: "Python project created successfully",
@@ -218,17 +225,12 @@ func ManagePythonProjectHandler(c *gin.Context) {
 // DeletePythonProjectHandler - Delete Python project
 func DeletePythonProjectHandler(c *gin.Context) {
 	name := c.Param("name")
-	projectDir := filepath.Join("/opt/python-apps", name)
+	projectDir := filepath.Join("/home/python-apps", name)
 
-	// Stop service
 	exec.Command("systemctl", "stop", fmt.Sprintf("python-%s", name)).Run()
 	exec.Command("systemctl", "disable", fmt.Sprintf("python-%s", name)).Run()
-
-	// Remove service file
 	os.Remove(fmt.Sprintf("/etc/systemd/system/python-%s.service", name))
 	exec.Command("systemctl", "daemon-reload").Run()
-
-	// Remove project directory
 	os.RemoveAll(projectDir)
 
 	c.JSON(200, gin.H{"success": true, "message": "Project deleted"})
@@ -251,7 +253,7 @@ type JavaProject struct {
 // ListJavaProjectsHandler - List Java projects
 func ListJavaProjectsHandler(c *gin.Context) {
 	projects := []JavaProject{}
-	projectsDir := "/opt/java-apps"
+	projectsDir := "/home/java-apps"
 
 	entries, err := os.ReadDir(projectsDir)
 	if err != nil {
@@ -318,7 +320,7 @@ func CreateJavaProjectHandler(c *gin.Context) {
 	}
 
 	script := fmt.Sprintf(`
-cd /opt/java-apps 2>/dev/null || mkdir -p /opt/java-apps
+cd /home/java-apps 2>/dev/null || mkdir -p /home/java-apps
 source /opt/panda/modules/project/java.sh
 create_java_project_noninteractive "%s" "%s" %d
 `, req.Name, req.Domain, req.Port)
@@ -330,6 +332,8 @@ create_java_project_noninteractive "%s" "%s" %d
 		c.JSON(500, gin.H{"error": string(output)})
 		return
 	}
+
+	SendNotification("Project Created", fmt.Sprintf("Java project %s created", req.Name), "success")
 
 	c.JSON(200, ProjectResponse{
 		Success: true,
@@ -440,7 +444,7 @@ func CreateDeploymentHandler(c *gin.Context) {
 		req.Branch = "main"
 	}
 	if req.DeployPath == "" {
-		req.DeployPath = "/var/www"
+		req.DeployPath = "/home"
 	}
 	if req.ProjectType == "" {
 		req.ProjectType = "php"
@@ -459,6 +463,8 @@ setup_deployment_api "%s" "%s" "%s" "%s" "%s"
 		return
 	}
 
+	SendNotification("Deployment Created", fmt.Sprintf("Deployment %s configured", req.Name), "info")
+
 	c.JSON(200, gin.H{
 		"success": true,
 		"message": "Deployment configured successfully",
@@ -476,9 +482,12 @@ func TriggerDeployHandler(c *gin.Context) {
 	output, err := cmd.CombinedOutput()
 
 	if err != nil {
+		SendNotification("Deployment Failed", fmt.Sprintf("Deployment %s failed", name), "error")
 		c.JSON(500, gin.H{"error": string(output)})
 		return
 	}
+
+	SendNotification("Deployment Success", fmt.Sprintf("Deployment %s completed", name), "success")
 
 	c.JSON(200, gin.H{
 		"success": true,
@@ -498,7 +507,6 @@ func GetDeployLogsHandler(c *gin.Context) {
 		return
 	}
 
-	// Get last 100 lines
 	lines := strings.Split(string(data), "\n")
 	start := 0
 	if len(lines) > 100 {
@@ -515,7 +523,7 @@ func DeleteDeploymentHandler(c *gin.Context) {
 	name := c.Param("name")
 
 	os.Remove(fmt.Sprintf("/etc/panda/deployments/%s.conf", name))
-	os.Remove(fmt.Sprintf("/var/www/webhooks/%s-webhook.php", name))
+	os.Remove(fmt.Sprintf("/home/webhooks/%s-webhook.php", name))
 
 	c.JSON(200, gin.H{"success": true, "message": "Deployment removed"})
 }
@@ -535,7 +543,6 @@ configure_auto_deploy_api "%s"
 		return
 	}
 
-	// Read secret from config
 	configPath := fmt.Sprintf("/etc/panda/deployments/%s.conf", name)
 	configData, _ := os.ReadFile(configPath)
 	secret := ""
@@ -553,7 +560,7 @@ configure_auto_deploy_api "%s"
 	})
 }
 
-// CloneFromGitHubHandler - Clone project from GitHub
+// CloneFromGitHubHandler - Clone project from GitHub (supports PHP, Node.js, Python, Java)
 func CloneFromGitHubHandler(c *gin.Context) {
 	var req struct {
 		RepoURL     string `json:"repo_url" binding:"required"`
@@ -569,31 +576,108 @@ func CloneFromGitHubHandler(c *gin.Context) {
 	}
 
 	if req.ProjectType == "" {
-		req.ProjectType = "nodejs"
+		req.ProjectType = "php" // Default to PHP now
 	}
 	if req.Port == 0 {
-		req.Port = 3000
+		switch req.ProjectType {
+		case "nodejs":
+			req.Port = 3000
+		case "python":
+			req.Port = 8000
+		case "java":
+			req.Port = 8080
+		default:
+			req.Port = 80
+		}
 	}
 
 	var script string
+	var webRoot string
+
 	switch req.ProjectType {
+	case "php":
+		// PHP project - clone to /home/{domain}
+		if req.Domain == "" {
+			req.Domain = req.ProjectName
+		}
+		webRoot = fmt.Sprintf("/home/%s", req.Domain)
+		script = fmt.Sprintf(`
+set -e
+DOMAIN="%s"
+REPO="%s"
+WEB_ROOT="/home/%s"
+
+# Create directory
+mkdir -p "$WEB_ROOT"
+
+# Clone repo
+git clone --depth 1 "$REPO" "$WEB_ROOT" 2>&1 || { rm -rf "$WEB_ROOT"; git clone --depth 1 "$REPO" "$WEB_ROOT"; }
+
+# Set permissions
+chown -R www-data:www-data "$WEB_ROOT"
+find "$WEB_ROOT" -type d -exec chmod 755 {} \;
+find "$WEB_ROOT" -type f -exec chmod 644 {} \;
+
+# Install composer if exists
+if [ -f "$WEB_ROOT/composer.json" ]; then
+    cd "$WEB_ROOT"
+    composer install --no-dev --optimize-autoloader 2>/dev/null || true
+fi
+
+# Create Nginx config
+source /opt/panda/modules/nginx/vhost.sh 2>/dev/null || true
+cat > /etc/nginx/sites-available/$DOMAIN.conf << 'NGINX'
+server {
+    listen 80;
+    server_name %s;
+    root /home/%s;
+    index index.php index.html;
+    
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+    
+    location ~ \.php$ {
+        fastcgi_pass unix:/var/run/php/php-fpm.sock;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        include fastcgi_params;
+    }
+    
+    location ~ /\.ht {
+        deny all;
+    }
+}
+NGINX
+
+ln -sf /etc/nginx/sites-available/$DOMAIN.conf /etc/nginx/sites-enabled/
+nginx -t && systemctl reload nginx
+
+echo "PHP project cloned successfully to $WEB_ROOT"
+`, req.Domain, req.RepoURL, req.Domain, req.Domain, req.Domain)
+
 	case "nodejs":
+		webRoot = fmt.Sprintf("/home/nodejs-apps/%s", req.ProjectName)
 		script = fmt.Sprintf(`
 source /opt/panda/modules/project/nodejs.sh
 clone_nodejs_api "%s" "%s" %d "%s"
 `, req.RepoURL, req.ProjectName, req.Port, req.Domain)
+
 	case "python":
+		webRoot = fmt.Sprintf("/home/python-apps/%s", req.ProjectName)
 		script = fmt.Sprintf(`
 source /opt/panda/modules/project/python.sh
 clone_python_api "%s" "%s" %d "%s"
 `, req.RepoURL, req.ProjectName, req.Port, req.Domain)
+
 	case "java":
+		webRoot = fmt.Sprintf("/home/java-apps/%s", req.ProjectName)
 		script = fmt.Sprintf(`
 source /opt/panda/modules/project/java.sh
 clone_java_api "%s" "%s" %d
 `, req.RepoURL, req.ProjectName, req.Port)
+
 	default:
-		c.JSON(400, gin.H{"error": "Invalid project type"})
+		c.JSON(400, gin.H{"error": "Invalid project type. Supported: php, nodejs, python, java"})
 		return
 	}
 
@@ -601,13 +685,17 @@ clone_java_api "%s" "%s" %d
 	output, err := cmd.CombinedOutput()
 
 	if err != nil {
+		SendNotification("Clone Failed", fmt.Sprintf("Failed to clone %s", req.RepoURL), "error")
 		c.JSON(500, gin.H{"error": string(output)})
 		return
 	}
 
+	SendNotification("Project Cloned", fmt.Sprintf("%s project %s cloned from GitHub", req.ProjectType, req.ProjectName), "success")
+
 	c.JSON(200, gin.H{
-		"success": true,
-		"message": fmt.Sprintf("%s project cloned successfully", req.ProjectType),
+		"success":  true,
+		"message":  fmt.Sprintf("%s project cloned successfully", req.ProjectType),
+		"web_root": webRoot,
 	})
 }
 
@@ -617,22 +705,36 @@ func GetProjectStatsHandler(c *gin.Context) {
 		"nodejs_projects": 0,
 		"python_projects": 0,
 		"java_projects":   0,
+		"php_projects":    0,
 		"deployments":     0,
 	}
 
 	// Count Node.js
-	if entries, err := os.ReadDir("/opt/nodejs-apps"); err == nil {
+	if entries, err := os.ReadDir("/home/nodejs-apps"); err == nil {
 		stats["nodejs_projects"] = len(entries)
 	}
 
 	// Count Python
-	if entries, err := os.ReadDir("/opt/python-apps"); err == nil {
+	if entries, err := os.ReadDir("/home/python-apps"); err == nil {
 		stats["python_projects"] = len(entries)
 	}
 
 	// Count Java
-	if entries, err := os.ReadDir("/opt/java-apps"); err == nil {
+	if entries, err := os.ReadDir("/home/java-apps"); err == nil {
 		stats["java_projects"] = len(entries)
+	}
+
+	// Count PHP (websites in /home)
+	if entries, err := os.ReadDir("/home"); err == nil {
+		for _, e := range entries {
+			if e.IsDir() && !strings.HasSuffix(e.Name(), "-apps") {
+				// Check if it's a website
+				indexPath := filepath.Join("/home", e.Name(), "index.php")
+				if _, err := os.Stat(indexPath); err == nil {
+					stats["php_projects"]++
+				}
+			}
+		}
 	}
 
 	// Count deployments
@@ -645,4 +747,202 @@ func GetProjectStatsHandler(c *gin.Context) {
 	}
 
 	c.JSON(200, stats)
+}
+
+// ============================================
+// Notification System
+// ============================================
+
+type NotificationConfig struct {
+	TelegramEnabled  bool   `json:"telegram_enabled"`
+	TelegramBotToken string `json:"telegram_bot_token"`
+	TelegramChatID   string `json:"telegram_chat_id"`
+	EmailEnabled     bool   `json:"email_enabled"`
+	EmailSMTP        string `json:"email_smtp"`
+	EmailPort        int    `json:"email_port"`
+	EmailUser        string `json:"email_user"`
+	EmailPassword    string `json:"email_password"`
+	EmailTo          string `json:"email_to"`
+	PanelEnabled     bool   `json:"panel_enabled"`
+}
+
+type Notification struct {
+	ID        int64  `json:"id"`
+	Title     string `json:"title"`
+	Message   string `json:"message"`
+	Type      string `json:"type"` // success, error, warning, info
+	Read      bool   `json:"read"`
+	CreatedAt string `json:"created_at"`
+}
+
+var notifications []Notification
+var notificationConfig NotificationConfig
+
+func init() {
+	notifications = []Notification{}
+	notificationConfig = NotificationConfig{
+		PanelEnabled: true,
+	}
+	loadNotificationConfig()
+}
+
+func loadNotificationConfig() {
+	data, err := os.ReadFile("/etc/panda/notifications.json")
+	if err == nil {
+		json.Unmarshal(data, &notificationConfig)
+	}
+}
+
+func saveNotificationConfig() {
+	data, _ := json.MarshalIndent(notificationConfig, "", "  ")
+	os.MkdirAll("/etc/panda", 0755)
+	os.WriteFile("/etc/panda/notifications.json", data, 0644)
+}
+
+// SendNotification - Send notification to all configured channels
+func SendNotification(title, message, notifType string) {
+	// Panel notification
+	if notificationConfig.PanelEnabled {
+		notif := Notification{
+			ID:        time.Now().UnixNano(),
+			Title:     title,
+			Message:   message,
+			Type:      notifType,
+			Read:      false,
+			CreatedAt: time.Now().Format("2006-01-02 15:04:05"),
+		}
+		notifications = append([]Notification{notif}, notifications...)
+		// Keep only last 100 notifications
+		if len(notifications) > 100 {
+			notifications = notifications[:100]
+		}
+	}
+
+	// Telegram notification
+	if notificationConfig.TelegramEnabled && notificationConfig.TelegramBotToken != "" {
+		go sendTelegramNotification(title, message, notifType)
+	}
+
+	// Email notification
+	if notificationConfig.EmailEnabled && notificationConfig.EmailSMTP != "" {
+		go sendEmailNotification(title, message, notifType)
+	}
+}
+
+func sendTelegramNotification(title, message, notifType string) {
+	emoji := "ℹ️"
+	switch notifType {
+	case "success":
+		emoji = "✅"
+	case "error":
+		emoji = "❌"
+	case "warning":
+		emoji = "⚠️"
+	}
+
+	text := fmt.Sprintf("%s *%s*\n\n%s", emoji, title, message)
+	url := fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", notificationConfig.TelegramBotToken)
+
+	payload := map[string]string{
+		"chat_id":    notificationConfig.TelegramChatID,
+		"text":       text,
+		"parse_mode": "Markdown",
+	}
+
+	jsonData, _ := json.Marshal(payload)
+	http.Post(url, "application/json", bytes.NewBuffer(jsonData))
+}
+
+func sendEmailNotification(title, message, notifType string) {
+	// Use msmtp or sendmail for email
+	script := fmt.Sprintf(`
+echo -e "Subject: [Panda Panel] %s\n\n%s" | msmtp -a default %s 2>/dev/null || \
+echo -e "Subject: [Panda Panel] %s\n\n%s" | sendmail %s 2>/dev/null || true
+`, title, message, notificationConfig.EmailTo, title, message, notificationConfig.EmailTo)
+
+	exec.Command("bash", "-c", script).Run()
+}
+
+// GetNotificationsHandler - Get panel notifications
+func GetNotificationsHandler(c *gin.Context) {
+	c.JSON(200, gin.H{"notifications": notifications})
+}
+
+// MarkNotificationReadHandler - Mark notification as read
+func MarkNotificationReadHandler(c *gin.Context) {
+	id := c.Param("id")
+	var notifID int64
+	fmt.Sscanf(id, "%d", &notifID)
+
+	for i := range notifications {
+		if notifications[i].ID == notifID {
+			notifications[i].Read = true
+			break
+		}
+	}
+
+	c.JSON(200, gin.H{"success": true})
+}
+
+// MarkAllNotificationsReadHandler - Mark all notifications as read
+func MarkAllNotificationsReadHandler(c *gin.Context) {
+	for i := range notifications {
+		notifications[i].Read = true
+	}
+	c.JSON(200, gin.H{"success": true})
+}
+
+// ClearNotificationsHandler - Clear all notifications
+func ClearNotificationsHandler(c *gin.Context) {
+	notifications = []Notification{}
+	c.JSON(200, gin.H{"success": true})
+}
+
+// GetNotificationConfigHandler - Get notification settings
+func GetNotificationConfigHandler(c *gin.Context) {
+	// Don't expose passwords
+	safeConfig := notificationConfig
+	safeConfig.EmailPassword = ""
+	c.JSON(200, safeConfig)
+}
+
+// UpdateNotificationConfigHandler - Update notification settings
+func UpdateNotificationConfigHandler(c *gin.Context) {
+	var req NotificationConfig
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Preserve password if not provided
+	if req.EmailPassword == "" {
+		req.EmailPassword = notificationConfig.EmailPassword
+	}
+
+	notificationConfig = req
+	saveNotificationConfig()
+
+	c.JSON(200, gin.H{"success": true, "message": "Settings saved"})
+}
+
+// TestTelegramHandler - Test Telegram notification
+func TestTelegramHandler(c *gin.Context) {
+	if !notificationConfig.TelegramEnabled || notificationConfig.TelegramBotToken == "" {
+		c.JSON(400, gin.H{"error": "Telegram not configured"})
+		return
+	}
+
+	sendTelegramNotification("Test Notification", "Panda Panel notification is working!", "info")
+	c.JSON(200, gin.H{"success": true, "message": "Test notification sent"})
+}
+
+// TestEmailHandler - Test Email notification
+func TestEmailHandler(c *gin.Context) {
+	if !notificationConfig.EmailEnabled || notificationConfig.EmailSMTP == "" {
+		c.JSON(400, gin.H{"error": "Email not configured"})
+		return
+	}
+
+	sendEmailNotification("Test Notification", "Panda Panel email notification is working!", "info")
+	c.JSON(200, gin.H{"success": true, "message": "Test email sent"})
 }

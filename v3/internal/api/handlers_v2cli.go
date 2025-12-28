@@ -41,7 +41,7 @@ func InstallWordPressHandler(c *gin.Context) {
 		return
 	}
 
-	webRoot := "/var/www/" + req.Domain
+	webRoot := "/home/" + req.Domain
 
 	// Create directory
 	system.Execute("mkdir -p " + webRoot)
@@ -159,8 +159,8 @@ func CloneWebsiteHandler(c *gin.Context) {
 		return
 	}
 
-	sourcePath := "/var/www/" + req.SourceDomain
-	targetPath := "/var/www/" + req.TargetDomain
+	sourcePath := "/home/" + req.SourceDomain
+	targetPath := "/home/" + req.TargetDomain
 
 	// Clone files
 	_, err := system.Execute(fmt.Sprintf("cp -r %s %s", sourcePath, targetPath))
