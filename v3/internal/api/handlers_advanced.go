@@ -396,6 +396,10 @@ func KillProcessHandler(c *gin.Context) {
 // ============================================================================
 
 var defaultApps = []db.App{
+	{Name: "MySQL", Slug: "mysql", Description: "Popular relational database", Icon: "🗄️", DockerImage: "mysql:8.0", Port: 3306},
+	{Name: "Redis", Slug: "redis", Description: "In-memory data store", Icon: "🔴", DockerImage: "redis:alpine", Port: 6379},
+	{Name: "PostgreSQL", Slug: "postgresql", Description: "Advanced open-source database", Icon: "🐘", DockerImage: "postgres:15", Port: 5432},
+	{Name: "MongoDB", Slug: "mongodb", Description: "NoSQL document database", Icon: "🍃", DockerImage: "mongo:6", Port: 27017},
 	{Name: "Nextcloud", Slug: "nextcloud", Description: "Self-hosted cloud storage", Icon: "☁️", DockerImage: "nextcloud:latest", Port: 8080},
 	{Name: "WordPress", Slug: "wordpress", Description: "Popular CMS", Icon: "📝", DockerImage: "wordpress:latest", Port: 8081},
 	{Name: "Ghost", Slug: "ghost", Description: "Publishing platform", Icon: "👻", DockerImage: "ghost:latest", Port: 8082},
@@ -408,14 +412,22 @@ func ListAppsHandler(c *gin.Context) {
 	var apps []db.App
 	db.DB.Find(&apps)
 
-	// If no apps, seed default
-	if len(apps) == 0 {
-		for _, app := range defaultApps {
-			db.DB.Create(&app)
+	// Sync default apps to DB (add missing ones)
+	for _, defaultApp := range defaultApps {
+		exists := false
+		for _, app := range apps {
+			if app.Slug == defaultApp.Slug {
+				exists = true
+				break
+			}
 		}
-		db.DB.Find(&apps)
+		if !exists {
+			db.DB.Create(&defaultApp)
+		}
 	}
 
+	// Refresh apps list
+	db.DB.Find(&apps)
 	c.JSON(http.StatusOK, apps)
 }
 
@@ -433,11 +445,27 @@ func InstallAppHandler(c *gin.Context) {
 		return
 	}
 
-	// Run docker command
-	cmd := "docker run -d --name panda-" + app.Slug + " -p " + strconv.Itoa(app.Port) + ":80 " + app.DockerImage
+	// Build docker command based on app type
+	var cmd string
+	switch app.Slug {
+	case "mysql":
+		cmd = "docker run -d --name panda-mysql --restart unless-stopped -e MYSQL_ROOT_PASSWORD=panda123 -p 3306:3306 -v panda-mysql-data:/var/lib/mysql mysql:8.0"
+	case "redis":
+		cmd = "docker run -d --name panda-redis --restart unless-stopped -p 6379:6379 -v panda-redis-data:/data redis:alpine"
+	case "postgresql":
+		cmd = "docker run -d --name panda-postgresql --restart unless-stopped -e POSTGRES_PASSWORD=panda123 -p 5432:5432 -v panda-postgres-data:/var/lib/postgresql/data postgres:15"
+	case "mongodb":
+		cmd = "docker run -d --name panda-mongodb --restart unless-stopped -p 27017:27017 -v panda-mongo-data:/data/db mongo:6"
+	case "portainer":
+		cmd = "docker run -d --name panda-portainer --restart unless-stopped -p 9000:9000 -v /var/run/docker.sock:/var/run/docker.sock -v panda-portainer-data:/data portainer/portainer-ce:latest"
+	default:
+		// Generic apps - port mapping to container port 80
+		cmd = "docker run -d --name panda-" + app.Slug + " --restart unless-stopped -p " + strconv.Itoa(app.Port) + ":80 " + app.DockerImage
+	}
+
 	out, err := system.Execute(cmd)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to install: " + err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to install: " + err.Error() + " | Output: " + out})
 		return
 	}
 
