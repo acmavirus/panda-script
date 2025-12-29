@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
-import { Plus, Trash2, Globe, ExternalLink, Lock, Shield, FolderOpen, RefreshCw } from 'lucide-vue-next'
+import { Plus, Trash2, Globe, ExternalLink, Lock, Shield, FolderOpen, RefreshCw, Database } from 'lucide-vue-next'
 import Skeleton from '../components/Skeleton.vue'
 
 const websites = ref([])
@@ -68,6 +68,16 @@ const createSSL = async (domain) => {
     error.value = err.response?.data?.error || 'Failed to create SSL certificate'
   } finally {
     creatingSSL.value = creatingSSL.value.filter(d => d !== domain)
+  }
+}
+
+const createWebsiteDB = async (domain) => {
+  if (!confirm(`Tự động tạo Database MySQL cho ${domain}?`)) return
+  try {
+    const res = await axios.post(`/api/websites/${domain}/db`)
+    success.value = `Đã tạo Database: ${res.data.db_name}`
+  } catch (err) {
+    error.value = err.response?.data?.error || 'Failed to create database'
   }
 }
 
@@ -212,6 +222,13 @@ onMounted(fetchWebsites)
                 >
                   <FolderOpen :size="14" />
                 </router-link>
+                <button 
+                  @click="createWebsiteDB(site.domain)"
+                  class="panda-btn panda-btn-ghost p-2"
+                  data-tooltip="Create DB"
+                >
+                  <Database :size="14" style="color: var(--color-info);" />
+                </button>
                 <button 
                   v-if="!site.ssl"
                   @click="createSSL(site.domain)"

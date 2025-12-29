@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/acmavirus/panda-script/v3/internal/auth"
@@ -404,6 +405,24 @@ func CreateWebsiteSSLHandler(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "SSL certificate created successfully for " + domain})
+}
+
+func CreateWebsiteDBHandler(c *gin.Context) {
+	domain := c.Param("domain")
+	// Sanitize domain for DB name (e.g. example.com -> example_com)
+	dbName := strings.ReplaceAll(domain, ".", "_")
+	dbName = strings.ReplaceAll(dbName, "-", "_")
+
+	// Create MySQL database
+	if err := database.CreateDatabase(dbName, "mysql"); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Database created successfully",
+		"db_name": dbName,
+	})
 }
 
 // Database Handlers
