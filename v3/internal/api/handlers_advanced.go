@@ -401,6 +401,7 @@ var defaultApps = []db.App{
 	{Name: "Node.js + PM2", Slug: "nodejs", Description: "JavaScript runtime with PM2 process manager", Icon: "💚", DockerImage: "system", Port: 0},
 	{Name: "MySQL Server", Slug: "mysql-native", Description: "MySQL database (native install)", Icon: "🐬", DockerImage: "system", Port: 3306},
 	{Name: "MariaDB Server", Slug: "mariadb", Description: "MariaDB database (MySQL fork)", Icon: "🧊", DockerImage: "system", Port: 3306},
+	{Name: "phpMyAdmin", Slug: "phpmyadmin", Description: "MySQL web interface (Native)", Icon: "🗃️", DockerImage: "system", Port: 8081},
 	// Docker Apps - Databases
 	{Name: "MySQL (Docker)", Slug: "mysql", Description: "MySQL in Docker container", Icon: "🗄️", DockerImage: "mysql:8.0", Port: 3306},
 	{Name: "Redis (Docker)", Slug: "redis", Description: "Redis in Docker container", Icon: "🔴", DockerImage: "redis:alpine", Port: 6379},
@@ -413,7 +414,6 @@ var defaultApps = []db.App{
 	{Name: "n8n", Slug: "n8n", Description: "Workflow automation", Icon: "🔄", DockerImage: "n8nio/n8n:latest", Port: 5678},
 	{Name: "Portainer", Slug: "portainer", Description: "Docker management", Icon: "🐳", DockerImage: "portainer/portainer-ce:latest", Port: 9000},
 	{Name: "Uptime Kuma", Slug: "uptime-kuma", Description: "Uptime monitoring", Icon: "📊", DockerImage: "louislam/uptime-kuma:latest", Port: 3001},
-	{Name: "phpMyAdmin", Slug: "phpmyadmin", Description: "MySQL web interface (Native)", Icon: "🗃️", DockerImage: "system", Port: 8081},
 }
 
 func ListAppsHandler(c *gin.Context) {
