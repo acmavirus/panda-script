@@ -6,10 +6,13 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"text/template"
 
 	"github.com/acmavirus/panda-script/v3/internal/system"
 )
+
+var sslMutex sync.Mutex
 
 type Website struct {
 	Domain    string `json:"domain"`
@@ -204,6 +207,9 @@ func CreateSSL(domain string) error {
 		return fmt.Errorf("SSL creation requires Linux")
 	}
 
+	sslMutex.Lock()
+	defer sslMutex.Unlock()
+
 	// Check if certbot is installed
 	if _, err := system.Execute("which certbot"); err != nil {
 		// Install certbot
@@ -227,6 +233,9 @@ func RenewSSL() error {
 	if runtime.GOOS == "windows" {
 		return fmt.Errorf("SSL renewal requires Linux")
 	}
+
+	sslMutex.Lock()
+	defer sslMutex.Unlock()
 
 	out, err := system.Execute("certbot renew --quiet")
 	if err != nil {
