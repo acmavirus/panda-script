@@ -235,6 +235,7 @@ func RegisterRoutes(r *gin.RouterGroup) {
 			nodeGroup.POST("/install", InstallNodeJSHandler)
 			nodeGroup.GET("/pm2", ListPM2ProcessesHandler)
 			nodeGroup.POST("/pm2/:name/:action", PM2ActionHandler)
+			nodeGroup.GET("/pm2/:name/logs", GetPM2LogsHandler)
 		}
 
 		// Cache (Redis/Memcached)

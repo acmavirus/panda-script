@@ -272,8 +272,29 @@ func ListPM2ProcessesHandler(c *gin.Context) {
 
 	out, _ := system.Execute("pm2 jlist 2>/dev/null")
 
+	var raw []map[string]interface{}
+	json.Unmarshal([]byte(out), &raw)
+
+	// Transform to a flatter structure for the frontend
 	var processes []map[string]interface{}
-	json.Unmarshal([]byte(out), &processes)
+	for _, p := range raw {
+		proc := make(map[string]interface{})
+		proc["name"] = p["name"]
+		proc["status"] = p["status"]
+		proc["pid"] = p["pid"]
+
+		if monit, ok := p["monit"].(map[string]interface{}); ok {
+			proc["memory"] = monit["memory"]
+			proc["cpu"] = monit["cpu"]
+		}
+
+		if env, ok := p["pm2_env"].(map[string]interface{}); ok {
+			proc["uptime"] = env["pm_uptime"]
+			proc["restarts"] = env["restart_time"]
+		}
+
+		processes = append(processes, proc)
+	}
 
 	c.JSON(http.StatusOK, processes)
 }
@@ -289,11 +310,29 @@ func PM2ActionHandler(c *gin.Context) {
 
 	out, err := system.Execute(fmt.Sprintf("pm2 %s %s", action, name))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error(), "output": out})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"output": out})
+}
+
+func GetPM2LogsHandler(c *gin.Context) {
+	name := c.Param("name")
+
+	if runtime.GOOS == "windows" {
+		c.JSON(http.StatusOK, gin.H{"logs": "Logs are not available on Windows."})
+		return
+	}
+
+	// Get last 100 lines of logs
+	out, err := system.Execute(fmt.Sprintf("pm2 logs %s --lines 100 --nostream", name))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"logs": out})
 }
 
 // ============================================================================

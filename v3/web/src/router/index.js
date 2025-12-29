@@ -129,6 +129,11 @@ const router = createRouter({
           path: 'cms',
           name: 'cms',
           component: CMSInstaller
+        },
+        {
+          path: 'pm2',
+          name: 'pm2',
+          component: () => import('../views/PM2.vue')
         }
       ]
     },

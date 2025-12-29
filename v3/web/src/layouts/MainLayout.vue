@@ -63,7 +63,7 @@ const menuGroups = [
     items: [
       { icon: Code, label: 'PHP Manager', path: '/php' },
       { icon: Server, label: 'Nginx', path: '/nginx' },
-      { icon: Lock, label: 'SSL', path: '/ssl' },
+      { icon: Terminal, label: 'PM2 Manager', path: '/pm2' },
       { icon: Store, label: 'App Store', path: '/apps' },
     ]
   },

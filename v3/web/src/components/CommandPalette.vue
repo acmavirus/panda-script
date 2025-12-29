@@ -122,7 +122,7 @@ export default {
       { label: 'Terminal', path: '/terminal', icon: Terminal },
       { label: 'Services', path: '/services', icon: Server },
       { label: 'PHP', path: '/php', icon: Code },
-      { label: 'SSL Certificates', path: '/ssl', icon: Lock },
+      { label: 'PM2 Manager', path: '/pm2', icon: Terminal },
       { label: 'Security', path: '/security', icon: Shield },
       { label: 'Backup', path: '/backup', icon: Archive },
       { label: 'Processes', path: '/processes', icon: Cpu },
