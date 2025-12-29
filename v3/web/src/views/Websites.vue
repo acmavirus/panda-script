@@ -30,6 +30,7 @@ const getTypeColor = (type) => {
   return colors[type] || '#94a3b8'
 }
 
+const phpVersions = ref([])
 const showCreateModal = ref(false)
 const newWebsite = ref({
   domain: '',
@@ -37,11 +38,13 @@ const newWebsite = ref({
   port: 80,
   backend_port: 3000,
   root: '/home',
-  ssl: false
+  ssl: false,
+  php_version: ''
 })
 const loading = ref(true)
 const creating = ref(false)
 const creatingSSL = ref([]) // Queue of domains waiting for SSL
+const changingPHP = ref(null) // domain of site being changed
 const error = ref('')
 const success = ref('')
 
@@ -49,6 +52,16 @@ const filteredWebsites = computed(() => {
   if (selectedTab.value === 'all') return websites.value
   return websites.value.filter(site => site.type === selectedTab.value)
 })
+
+const fetchPHPVersions = async () => {
+  try {
+    const res = await axios.get('/api/php/versions')
+    // Transform from list of objects to list of strings if needed
+    phpVersions.value = res.data.map(v => typeof v === 'object' ? v.version : v)
+  } catch (err) {
+    console.error('Failed to fetch PHP versions:', err)
+  }
+}
 
 const fetchWebsites = async () => {
   try {
@@ -155,6 +168,21 @@ const fixPermissions = async (domain) => {
   }
 }
 
+const updatePHPVersion = async (domain, version) => {
+  try {
+    changingPHP.value = domain
+    await axios.post(`/api/websites/${domain}/php`, { version })
+    const site = websites.value.find(w => w.domain === domain)
+    if (site) site.php_version = version
+    success.value = `Updated PHP version to ${version} for ${domain}`
+    setTimeout(() => { success.value = '' }, 3000)
+  } catch (err) {
+    error.value = err.response?.data?.error || 'Failed to update PHP version'
+  } finally {
+    changingPHP.value = null
+  }
+}
+
 const toggleHot = async (domain) => {
   try {
     const res = await axios.post(`/api/websites/${domain}/hot`)
@@ -192,6 +220,7 @@ onMounted(() => {
     selectedTab.value = savedTab
   }
   fetchWebsites()
+  fetchPHPVersions()
 })
 </script>
 
@@ -324,16 +353,40 @@ onMounted(() => {
               </div>
             </td>
             <td class="hidden sm:table-cell">
-              <span 
-                class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border" 
-                :style="{ 
-                  color: getTypeColor(site.type || 'local'), 
-                  borderColor: getTypeColor(site.type || 'local') + '40',
-                  background: getTypeColor(site.type || 'local') + '10'
-                }"
-              >
-                {{ site.type || 'local' }}
-              </span>
+              <div class="flex flex-col gap-1">
+                <span 
+                  class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border self-start" 
+                  :style="{ 
+                    color: getTypeColor(site.type || 'local'), 
+                    borderColor: getTypeColor(site.type || 'local') + '40',
+                    background: getTypeColor(site.type || 'local') + '10'
+                  }"
+                >
+                  {{ site.type || 'local' }}
+                </span>
+                
+                <!-- PHP Version Selector -->
+                <div v-if="['php', 'laravel', 'wordpress', 'local'].includes(site.type) || !site.type" class="flex items-center gap-1">
+                  <select 
+                    :value="site.php_version" 
+                    @change="(e) => updatePHPVersion(site.domain, e.target.value)"
+                    :disabled="changingPHP === site.domain"
+                    class="text-[10px] bg-transparent border-none p-0 cursor-pointer hover:underline focus:ring-0"
+                    style="color: var(--text-muted);"
+                  >
+                    <option value="" style="background: var(--bg-elevated); color: var(--text-primary);">Default PHP</option>
+                    <option 
+                      v-for="v in phpVersions" 
+                      :key="v" 
+                      :value="v"
+                      style="background: var(--bg-elevated); color: var(--text-primary);"
+                    >
+                      PHP {{ v }}
+                    </option>
+                  </select>
+                  <RefreshCw v-if="changingPHP === site.domain" :size="8" class="animate-spin opacity-50" />
+                </div>
+              </div>
             </td>
             <td class="hidden md:table-cell">
               <code class="text-xs px-2 py-1 rounded" style="background: var(--bg-surface); color: var(--text-secondary);">
@@ -483,6 +536,15 @@ onMounted(() => {
                     {{ type.label }}
                   </button>
                 </div>
+              </div>
+
+              <!-- PHP Version (for PHP sites) -->
+              <div v-if="['php', 'laravel', 'wordpress', 'local'].includes(newWebsite.type)">
+                <label class="block text-sm font-medium mb-2" style="color: var(--text-secondary);">PHP Version</label>
+                <select v-model="newWebsite.php_version" class="panda-input h-10">
+                  <option value="">Default PHP (System)</option>
+                  <option v-for="v in phpVersions" :key="v" :value="v">PHP {{ v }}</option>
+                </select>
               </div>
 
               <!-- App Port (for proxy sites) -->

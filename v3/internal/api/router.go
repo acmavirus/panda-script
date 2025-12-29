@@ -58,6 +58,7 @@ func RegisterRoutes(r *gin.RouterGroup) {
 			webGroup.POST("/:domain/db", CreateWebsiteDBHandler)
 			webGroup.POST("/:domain/fix-permissions", FixWebsitePermissionsHandler)
 			webGroup.POST("/:domain/hot", ToggleWebsiteHotHandler)
+			webGroup.POST("/:domain/php", UpdateWebsitePHPVersionHandler)
 		}
 
 		// Databases

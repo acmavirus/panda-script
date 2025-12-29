@@ -425,6 +425,24 @@ func ToggleWebsiteHotHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"hot": site.Hot})
 }
 
+func UpdateWebsitePHPVersionHandler(c *gin.Context) {
+	domain := c.Param("domain")
+	var req struct {
+		Version string `json:"version" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := website.UpdateWebsitePHPVersion(domain, req.Version); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "PHP version updated successfully for " + domain})
+}
+
 func CreateWebsiteDBHandler(c *gin.Context) {
 	domain := c.Param("domain")
 	// Sanitize domain for DB name and User (e.g. example.com -> example_com)

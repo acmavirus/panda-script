@@ -32,7 +32,7 @@ const nginxPHPTemplate = `server {
     }
 
     location ~ \.php$ {
-        fastcgi_pass unix:/var/run/php/php-fpm.sock;
+        fastcgi_pass unix:/var/run/php/{{if .PHPVer}}php{{.PHPVer}}-fpm.sock{{else}}php-fpm.sock{{end}};
         fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
         include fastcgi_params;
     }
@@ -58,7 +58,7 @@ const nginxLaravelTemplate = `server {
     }
 
     location ~ \.php$ {
-        fastcgi_pass unix:/var/run/php/php-fpm.sock;
+        fastcgi_pass unix:/var/run/php/{{if .PHPVer}}php{{.PHPVer}}-fpm.sock{{else}}php-fpm.sock{{end}};
         fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
         include fastcgi_params;
     }
@@ -180,6 +180,7 @@ func ListWebsites() ([]Website, error) {
 			HasDB:       hasDB,
 			Hot:         infoMap[domain].Hot,
 			BackendPort: infoMap[domain].BackendPort,
+			PHPVer:      infoMap[domain].PHPVersion,
 			LastCheck:   infoMap[domain].LastCheck,
 		})
 	}
@@ -331,6 +332,7 @@ func CreateWebsite(site Website) error {
 			BackendPort: site.BackendPort,
 			Root:        site.Root,
 			SSL:         site.SSL,
+			PHPVersion:  site.PHPVer,
 		}
 		db.DB.Create(&dbSite)
 	} else {
@@ -339,6 +341,7 @@ func CreateWebsite(site Website) error {
 		dbSite.BackendPort = site.BackendPort
 		dbSite.Root = site.Root
 		dbSite.SSL = site.SSL
+		dbSite.PHPVersion = site.PHPVer
 		db.DB.Save(&dbSite)
 	}
 
@@ -424,6 +427,61 @@ func checkMySQLDatabaseExists(name string) bool {
 	}
 
 	return false
+}
+
+// GetPHPVersions returns a list of installed PHP versions on the system
+func GetPHPVersions() []string {
+	if runtime.GOOS == "windows" {
+		return []string{"8.1", "8.2", "8.3"}
+	}
+
+	var versions []string
+	entries, err := os.ReadDir("/etc/php")
+	if err != nil {
+		return versions
+	}
+
+	for _, entry := range entries {
+		if entry.IsDir() {
+			// Basic check if it's a version directory (e.g., 8.3)
+			if _, err := os.Stat(fmt.Sprintf("/etc/php/%s/fpm", entry.Name())); err == nil {
+				versions = append(versions, entry.Name())
+			}
+		}
+	}
+
+	// Sort versions descending
+	sort.Slice(versions, func(i, j int) bool {
+		return versions[i] > versions[j]
+	})
+
+	return versions
+}
+
+// UpdateWebsitePHPVersion updates the PHP version of a website
+func UpdateWebsitePHPVersion(domain, version string) error {
+	var site db.Website
+	if err := db.DB.Where("domain = ?", domain).First(&site).Error; err != nil {
+		return fmt.Errorf("website not found: %v", err)
+	}
+
+	site.PHPVersion = version
+	if err := db.DB.Save(&site).Error; err != nil {
+		return err
+	}
+
+	// Re-generate Nginx config
+	wsSite := Website{
+		Domain:      site.Domain,
+		Type:        site.Type,
+		Port:        site.Port,
+		Root:        site.Root,
+		SSL:         site.SSL,
+		PHPVer:      site.PHPVersion,
+		BackendPort: site.BackendPort,
+	}
+
+	return CreateWebsite(wsSite)
 }
 
 // StartStatusChecker starts the background worker for checking website status
