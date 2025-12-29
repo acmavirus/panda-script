@@ -425,18 +425,22 @@ func CreateWebsiteDBHandler(c *gin.Context) {
 	}
 
 	// 2. Create User and Grant Privileges
-	// We use multiple queries for better compatibility with different MySQL versions
+	// We use multiple queries for better compatibility and fallback
 	queries := []string{
 		fmt.Sprintf("CREATE USER IF NOT EXISTS '%s'@'localhost' IDENTIFIED BY '%s';", dbUser, dbPass),
+		fmt.Sprintf("ALTER USER '%s'@'localhost' IDENTIFIED BY '%s';", dbUser, dbPass),
+		fmt.Sprintf("CREATE USER IF NOT EXISTS '%s'@'127.0.0.1' IDENTIFIED BY '%s';", dbUser, dbPass),
+		fmt.Sprintf("ALTER USER '%s'@'127.0.0.1' IDENTIFIED BY '%s';", dbUser, dbPass),
 		fmt.Sprintf("GRANT ALL PRIVILEGES ON %s.* TO '%s'@'localhost';", dbName, dbUser),
+		fmt.Sprintf("GRANT ALL PRIVILEGES ON %s.* TO '%s'@'127.0.0.1';", dbName, dbUser),
 		"FLUSH PRIVILEGES;",
 	}
 
 	for _, q := range queries {
-		if _, err := database.ExecuteQuery("", "mysql", q); err != nil {
-			// Some older versions might fail on IF NOT EXISTS for users, or have different GRANT syntax
-			// We continue to next query to ensure we try our best
-			continue
+		_, err := database.ExecuteQuery("", "mysql", q)
+		if err != nil {
+			// Log error but continue to next query to ensure we try setting all permissions
+			fmt.Printf("DB Setup Warning: Query [%s] failed: %v\n", q, err)
 		}
 	}
 
