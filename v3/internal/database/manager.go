@@ -26,6 +26,45 @@ func init() {
 	os.MkdirAll(backupDir, 0755)
 }
 
+func runMySQLCommand(query string, dbName string, batch bool) (string, error) {
+	// 1. Try local mysql (native)
+	args := "-uroot"
+	if batch {
+		args += " -B"
+	}
+	
+	cmd := ""
+	if dbName != "" {
+		cmd = fmt.Sprintf("mysql %s -e \"%s\" %s", args, query, dbName)
+	} else {
+		cmd = fmt.Sprintf("mysql %s -e \"%s\"", args, query)
+	}
+
+	out, err := system.Execute(cmd)
+	if err == nil {
+		return out, nil
+	}
+
+	// 2. Try docker panda-mysql
+	if dbName != "" {
+		cmd = fmt.Sprintf("docker exec panda-mysql mysql -uroot -proot %s -e \"%s\" %s", args, query, dbName)
+	} else {
+		cmd = fmt.Sprintf("docker exec panda-mysql mysql -uroot -proot %s -e \"%s\"", args, query)
+	}
+	out, err = system.Execute(cmd)
+	if err == nil {
+		return out, nil
+	}
+
+	// 3. Try docker mysql (fallback name)
+	if dbName != "" {
+		cmd = fmt.Sprintf("docker exec mysql mysql -uroot -proot %s -e \"%s\" %s", args, query, dbName)
+	} else {
+		cmd = fmt.Sprintf("docker exec mysql mysql -uroot -proot %s -e \"%s\"", args, query)
+	}
+	return system.Execute(cmd)
+}
+
 func ListDatabases() ([]Database, error) {
 	files, err := os.ReadDir(dbDir)
 	if err != nil {
@@ -55,8 +94,7 @@ func ListDatabases() ([]Database, error) {
 }
 
 func listMySQLDatabases() ([]Database, error) {
-	cmd := "docker exec mysql mysql -uroot -proot -e 'SHOW DATABASES;'"
-	out, err := system.Execute(cmd)
+	out, err := runMySQLCommand("SHOW DATABASES;", "", false)
 	if err != nil {
 		return nil, err
 	}
@@ -81,8 +119,7 @@ func listMySQLDatabases() ([]Database, error) {
 
 func CreateDatabase(name, dbType string) error {
 	if dbType == "mysql" {
-		cmd := fmt.Sprintf("docker exec mysql mysql -uroot -proot -e 'CREATE DATABASE %s;'", name)
-		_, err := system.Execute(cmd)
+		_, err := runMySQLCommand(fmt.Sprintf("CREATE DATABASE %s;", name), "", false)
 		return err
 	}
 
@@ -107,8 +144,7 @@ func CreateDatabase(name, dbType string) error {
 
 func DeleteDatabase(name, dbType string) error {
 	if dbType == "mysql" {
-		cmd := fmt.Sprintf("docker exec mysql mysql -uroot -proot -e 'DROP DATABASE %s;'", name)
-		_, err := system.Execute(cmd)
+		_, err := runMySQLCommand(fmt.Sprintf("DROP DATABASE %s;", name), "", false)
 		return err
 	}
 	path := filepath.Join(dbDir, name)
@@ -117,8 +153,7 @@ func DeleteDatabase(name, dbType string) error {
 
 func ExecuteQuery(dbName, dbType, query string) ([]map[string]interface{}, error) {
 	if dbType == "mysql" {
-		cmd := fmt.Sprintf("docker exec -i mysql mysql -uroot -proot -D %s -e '%s' -B", dbName, query)
-		out, err := system.Execute(cmd)
+		out, err := runMySQLCommand(query, dbName, true)
 		if err != nil {
 			return nil, err
 		}
