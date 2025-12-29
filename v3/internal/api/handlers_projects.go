@@ -476,7 +476,7 @@ func TriggerDeployHandler(c *gin.Context) {
 	name := c.Param("name")
 
 	cmd := exec.Command("bash", "-c", fmt.Sprintf(
-		"export GIT_SSH_COMMAND=\"ssh -o StrictHostKeyChecking=no\" && source /opt/panda/modules/deploy/workflow.sh && deploy_by_name %s",
+		"export HOME=\"/root\" && export GIT_SSH_COMMAND=\"ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i /root/.ssh/id_rsa -i /root/.ssh/id_ed25519 2>/dev/null\" && source /opt/panda/modules/deploy/workflow.sh && deploy_by_name %s",
 		name,
 	))
 	output, err := cmd.CombinedOutput()
@@ -610,8 +610,9 @@ WEB_ROOT="/home/%s"
 # Create directory
 mkdir -p "$WEB_ROOT"
 
-# Clone repo
-export GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no"
+# Clone repo - ensure SSH key is accessible
+export HOME="/root"
+export GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i /root/.ssh/id_rsa -i /root/.ssh/id_ed25519 2>/dev/null"
 git clone --depth 1 "$REPO" "$WEB_ROOT" 2>&1 || { rm -rf "$WEB_ROOT"; git clone --depth 1 "$REPO" "$WEB_ROOT"; }
 
 # Set permissions

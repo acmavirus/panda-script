@@ -58,6 +58,10 @@ setup_deployment() {
     mkdir -p "$full_path"
     cd "$full_path"
     
+    # Ensure SSH key is accessible for private repos
+    export HOME="${HOME:-/root}"
+    export GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i /root/.ssh/id_rsa -i /root/.ssh/id_ed25519 2>/dev/null"
+    
     log_info "Cloning repository..."
     if [[ -d ".git" ]]; then
         git fetch origin && git checkout "$branch" && git pull origin "$branch"
@@ -169,6 +173,10 @@ pull_and_deploy() {
     [[ ! -f "$conf" ]] && { log_error "Not found"; pause; return 1; }
     
     source "$conf"
+    
+    # Ensure SSH key is accessible for private repos
+    export HOME="${HOME:-/root}"
+    export GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i /root/.ssh/id_rsa -i /root/.ssh/id_ed25519 2>/dev/null"
     
     log_info "Pulling latest code..."
     cd "$DEPLOY_PATH"
@@ -325,6 +333,10 @@ deploy_by_name() {
     [[ ! -f "$conf" ]] && { echo "Deployment not found: $name"; return 1; }
     
     source "$conf"
+    
+    # Ensure SSH key is accessible for private repos
+    export HOME="${HOME:-/root}"
+    export GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i /root/.ssh/id_rsa -i /root/.ssh/id_ed25519 2>/dev/null"
     
     cd "$DEPLOY_PATH"
     git fetch origin
