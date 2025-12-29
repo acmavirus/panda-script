@@ -47,6 +47,11 @@ func ListWebsites() ([]Website, error) {
 			continue
 		}
 
+		// Skip system app configs (not websites)
+		if f.Name() == "phpmyadmin.conf" || f.Name() == "panda.conf" {
+			continue
+		}
+
 		domain := strings.TrimSuffix(f.Name(), ".conf")
 		root := "/home/" + domain
 
