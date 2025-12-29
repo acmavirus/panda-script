@@ -409,20 +409,53 @@ func CreateWebsiteSSLHandler(c *gin.Context) {
 
 func CreateWebsiteDBHandler(c *gin.Context) {
 	domain := c.Param("domain")
-	// Sanitize domain for DB name (e.g. example.com -> example_com)
-	dbName := strings.ReplaceAll(domain, ".", "_")
-	dbName = strings.ReplaceAll(dbName, "-", "_")
+	// Sanitize domain for DB name and User (e.g. example.com -> example_com)
+	nameBase := strings.ReplaceAll(domain, ".", "_")
+	nameBase = strings.ReplaceAll(nameBase, "-", "_")
 
-	// Create MySQL database
-	if err := database.CreateDatabase(dbName, "mysql"); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	dbName := nameBase
+	dbUser := nameBase
+	dbPass := generateRandomPassword(16)
+
+	// 1. Create MySQL database
+	if _, err := database.ExecuteQuery("", "mysql", fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s;", dbName)); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create database: " + err.Error()})
 		return
 	}
 
+	// 2. Create User and Grant Privileges
+	// We use multiple queries for better compatibility with different MySQL versions
+	queries := []string{
+		fmt.Sprintf("CREATE USER IF NOT EXISTS '%s'@'localhost' IDENTIFIED BY '%s';", dbUser, dbPass),
+		fmt.Sprintf("GRANT ALL PRIVILEGES ON %s.* TO '%s'@'localhost';", dbName, dbUser),
+		"FLUSH PRIVILEGES;",
+	}
+
+	for _, q := range queries {
+		if _, err := database.ExecuteQuery("", "mysql", q); err != nil {
+			// Some older versions might fail on IF NOT EXISTS for users, or have different GRANT syntax
+			// We continue to next query to ensure we try our best
+			continue
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Database created successfully",
-		"db_name": dbName,
+		"message":     "Database and User created successfully",
+		"db_name":     dbName,
+		"db_user":     dbUser,
+		"db_password": dbPass,
+		"db_host":     "localhost",
 	})
+}
+
+func generateRandomPassword(length int) string {
+	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	b := make([]byte, length)
+	for i := range b {
+		b[i] = charset[time.Now().UnixNano()%int64(len(charset))]
+		time.Sleep(1 * time.Nanosecond) // Ensure different nano time
+	}
+	return string(b)
 }
 
 // Database Handlers

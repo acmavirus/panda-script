@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
-import { Plus, Trash2, Globe, ExternalLink, Lock, Shield, FolderOpen, RefreshCw, Database } from 'lucide-vue-next'
+import { Plus, Trash2, Globe, ExternalLink, Lock, Shield, FolderOpen, RefreshCw, Database, X } from 'lucide-vue-next'
 import Skeleton from '../components/Skeleton.vue'
 
 const websites = ref([])
@@ -75,7 +75,18 @@ const createWebsiteDB = async (domain) => {
   if (!confirm(`Tự động tạo Database MySQL cho ${domain}?`)) return
   try {
     const res = await axios.post(`/api/websites/${domain}/db`)
-    success.value = `Đã tạo Database: ${res.data.db_name}`
+    const creds = res.data
+    success.value = `
+      <div class="flex flex-col gap-2">
+        <div class="font-bold text-green-400">Database created successfully!</div>
+        <div class="grid grid-cols-2 gap-x-4 text-xs font-mono bg-black/40 p-3 rounded-lg border border-white/10">
+          <div class="text-gray-500">DB_NAME:</div><div class="text-white">${creds.db_name}</div>
+          <div class="text-gray-500">DB_USER:</div><div class="text-white">${creds.db_user}</div>
+          <div class="text-gray-500">DB_PASS:</div><div class="text-white">${creds.db_password}</div>
+          <div class="text-gray-500">DB_HOST:</div><div class="text-white">${creds.db_host}</div>
+        </div>
+      </div>
+    `
   } catch (err) {
     error.value = err.response?.data?.error || 'Failed to create database'
   }
@@ -122,21 +133,25 @@ onMounted(fetchWebsites)
     <!-- Success Alert -->
     <div 
       v-if="success" 
-      class="flex items-center justify-between px-4 py-3 rounded-lg text-sm"
+      class="flex items-center justify-between px-4 py-3 rounded-lg text-sm relative group"
       style="background: var(--color-success-subtle); color: var(--color-success);"
     >
-      <span>{{ success }}</span>
-      <button @click="success = ''" class="hover:opacity-70">&times;</button>
+      <div v-html="success"></div>
+      <button @click="success = ''" class="hover:opacity-70 absolute top-2 right-2">
+        <X :size="14" />
+      </button>
     </div>
 
     <!-- Error Alert -->
     <div 
       v-if="error" 
-      class="flex items-center justify-between px-4 py-3 rounded-lg text-sm"
+      class="flex items-center justify-between px-4 py-3 rounded-lg text-sm relative group"
       style="background: var(--color-error-subtle); color: var(--color-error);"
     >
       <span>{{ error }}</span>
-      <button @click="error = ''" class="hover:opacity-70">&times;</button>
+      <button @click="error = ''" class="hover:opacity-70 absolute top-2 right-2">
+        <X :size="14" />
+      </button>
     </div>
 
     <!-- Websites Table (Minimal, Border-less) -->
@@ -259,25 +274,6 @@ onMounted(fetchWebsites)
                 Add your first site
               </button>
             </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- Loading Skeleton -->
-    <div v-if="loading" class="panda-card !p-0 overflow-hidden">
-      <table class="panda-table">
-        <thead>
-          <tr>
-            <th>Domain</th>
-            <th class="hidden md:table-cell">Root</th>
-            <th class="hidden sm:table-cell">SSL</th>
-            <th class="w-32"></th>
-          </tr>
-        </thead>
-        <tbody>
-          <Skeleton v-for="n in 3" :key="n" :loading="true" type="table-row" :columns="4" />
-        </tbody>
       </table>
     </div>
 
