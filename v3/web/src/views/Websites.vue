@@ -169,6 +169,18 @@ const toggleHot = async (domain) => {
   }
 }
 
+const formatLastCheck = (dateStr) => {
+  if (!dateStr || dateStr.startsWith('0001')) return ''
+  const date = new Date(dateStr)
+  const now = new Date()
+  const diff = Math.floor((now - date) / 1000) // seconds
+  
+  if (diff < 60) return 'Vừa xong'
+  if (diff < 3600) return `${Math.floor(diff / 60)} phút trước`
+  if (diff < 86400) return `${Math.floor(diff / 3600)} giờ trước`
+  return `${Math.floor(diff / 86400)} ngày trước`
+}
+
 onMounted(fetchWebsites)
 </script>
 
@@ -280,11 +292,21 @@ onMounted(fetchWebsites)
                   <Globe v-else :size="16" style="color: var(--color-primary);" />
                 </div>
                 <div>
-                  <div class="font-medium" style="color: var(--text-primary);">{{ site.domain }}</div>
+                  <div class="font-medium flex items-center gap-2" style="color: var(--text-primary);">
+                    <span 
+                      class="w-2 h-2 rounded-full" 
+                      :style="{ background: site.status_code >= 400 || !site.status_code ? 'var(--color-error)' : (site.status_code >= 300 ? 'var(--color-warning)' : '#22c55e') }"
+                      :title="site.status_code ? 'Status: ' + site.status_code : 'Offline/Error'"
+                    ></span>
+                    {{ site.domain }}
+                  </div>
                   <div class="text-xs" style="color: var(--text-muted);">
                     {{ site.ssl ? 'HTTPS' : 'HTTP' }} • Port {{ site.port }}
-                    <span v-if="site.status_code" :style="{ color: site.status_code >= 400 ? 'var(--color-error)' : (site.status_code >= 300 ? 'var(--color-warning)' : '#22c55e') }">
+                    <span v-if="site.status_code">
                       • {{ site.status_code }}
+                    </span>
+                    <span v-if="site.last_check" class="ml-1 opacity-60 italic" :title="'Last check: ' + site.last_check">
+                      • {{ formatLastCheck(site.last_check) }}
                     </span>
                   </div>
                 </div>

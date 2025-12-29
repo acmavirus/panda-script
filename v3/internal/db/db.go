@@ -33,9 +33,11 @@ type Website struct {
 	PHPVersion  string    `json:"php_version"`
 	BackendPort int       `json:"backend_port"` // For Nodejs/Python proxy
 	DiskQuota   int64     `json:"disk_quota"`   // Bytes, 0 = unlimited
-	DiskUsed    int64     `json:"disk_used"`
-	OwnerID     uint      `json:"owner_id"` // For multi-user
-	Hot         bool      `json:"hot"`      // Highlighted website
+	Status      string    `json:"status"`       // active, no_directory, error
+	StatusCode  int       `json:"status_code"`  // HTTP status code
+	LastCheck   time.Time `json:"last_check"`   // Last background check time
+	OwnerID     uint      `json:"owner_id"`     // For multi-user
+	Hot         bool      `json:"hot"`          // Highlighted website
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }

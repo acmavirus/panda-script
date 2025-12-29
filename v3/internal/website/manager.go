@@ -93,18 +93,19 @@ const nginxProxyTemplate = `server {
 var sslMutex sync.Mutex
 
 type Website struct {
-	Domain      string `json:"domain"`
-	Type        string `json:"type"`
-	BackendPort int    `json:"backend_port"`
-	Port        int    `json:"port"`
-	Root        string `json:"root"`
-	SSL         bool   `json:"ssl"`
-	SSLExpiry   string `json:"ssl_expiry,omitempty"`
-	PHPVer      string `json:"php_version"`
-	Status      string `json:"status"`
-	StatusCode  int    `json:"status_code"`
-	HasDB       bool   `json:"has_db"`
-	Hot         bool   `json:"hot"`
+	Domain      string    `json:"domain"`
+	Type        string    `json:"type"`
+	BackendPort int       `json:"backend_port"`
+	Port        int       `json:"port"`
+	Root        string    `json:"root"`
+	SSL         bool      `json:"ssl"`
+	SSLExpiry   string    `json:"ssl_expiry,omitempty"`
+	PHPVer      string    `json:"php_version"`
+	Status      string    `json:"status"`
+	StatusCode  int       `json:"status_code"`
+	HasDB       bool      `json:"has_db"`
+	Hot         bool      `json:"hot"`
+	LastCheck   time.Time `json:"last_check"`
 }
 
 func ListWebsites() ([]Website, error) {
@@ -119,20 +120,12 @@ func ListWebsites() ([]Website, error) {
 		return []Website{}, nil
 	}
 
-	// Fetch all websites from DB to get Hot status and Type
+	// Fetch all websites from DB to get Hot status, Type, and Status
 	var dbWebsites []db.Website
 	db.DB.Find(&dbWebsites)
-	infoMap := make(map[string]struct {
-		Hot         bool
-		Type        string
-		BackendPort int
-	})
+	infoMap := make(map[string]db.Website)
 	for _, w := range dbWebsites {
-		infoMap[w.Domain] = struct {
-			Hot         bool
-			Type        string
-			BackendPort int
-		}{Hot: w.Hot, Type: w.Type, BackendPort: w.BackendPort}
+		infoMap[w.Domain] = w
 	}
 
 	var sites []Website
@@ -150,9 +143,8 @@ func ListWebsites() ([]Website, error) {
 		root := "/home/" + domain
 
 		// Check if directory exists
-		status := "active"
 		if _, err := os.Stat(root); os.IsNotExist(err) {
-			status = "no_directory"
+			// Optional: we could mark something here, but status is handled by background worker
 		}
 
 		// Check SSL status
@@ -183,57 +175,14 @@ func ListWebsites() ([]Website, error) {
 			Root:        root,
 			SSL:         hasSSL,
 			SSLExpiry:   sslExpiry,
-			Status:      status,
+			Status:      infoMap[domain].Status,
+			StatusCode:  infoMap[domain].StatusCode,
 			HasDB:       hasDB,
 			Hot:         infoMap[domain].Hot,
 			BackendPort: infoMap[domain].BackendPort,
+			LastCheck:   infoMap[domain].LastCheck,
 		})
 	}
-
-	// Fetch status codes concurrently
-	var wg sync.WaitGroup
-	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-	}
-	client := &http.Client{
-		Timeout:   5 * time.Second,
-		Transport: tr,
-		// Follow redirects to see the final destination status
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			if len(via) >= 5 {
-				return fmt.Errorf("stopped after 5 redirects")
-			}
-			return nil
-		},
-	}
-
-	for i := range sites {
-		wg.Add(1)
-		go func(idx int) {
-			defer wg.Done()
-
-			// Try HTTPS first if it has SSL, otherwise HTTP
-			protocol := "http://"
-			if sites[idx].SSL {
-				protocol = "https://"
-			}
-
-			url := protocol + sites[idx].Domain
-			resp, err := client.Get(url)
-			if err != nil {
-				// If HTTPS failed but we haven't tried HTTP yet, try HTTP
-				if protocol == "https://" {
-					resp, err = client.Get("http://" + sites[idx].Domain)
-				}
-			}
-
-			if err == nil && resp != nil {
-				sites[idx].StatusCode = resp.StatusCode
-				resp.Body.Close()
-			}
-		}(i)
-	}
-	wg.Wait()
 
 	// Sort by Hot (desc) then Domain (asc)
 	sort.Slice(sites, func(i, j int) bool {
@@ -475,4 +424,73 @@ func checkMySQLDatabaseExists(name string) bool {
 	}
 
 	return false
+}
+
+// StartStatusChecker starts the background worker for checking website status
+func StartStatusChecker() {
+	ticker := time.NewTicker(10 * time.Minute)
+	go func() {
+		// Initial check
+		checkAllWebsites()
+		for range ticker.C {
+			checkAllWebsites()
+		}
+	}()
+}
+
+func checkAllWebsites() {
+	var websites []db.Website
+	if err := db.DB.Find(&websites).Error; err != nil {
+		return
+	}
+
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := &http.Client{
+		Timeout:   10 * time.Second,
+		Transport: tr,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			if len(via) >= 5 {
+				return fmt.Errorf("stopped after 5 redirects")
+			}
+			return nil
+		},
+	}
+
+	var wg sync.WaitGroup
+	for i := range websites {
+		wg.Add(1)
+		go func(w *db.Website) {
+			defer wg.Done()
+
+			protocol := "http://"
+			if w.SSL {
+				protocol = "https://"
+			}
+
+			url := protocol + w.Domain
+			resp, err := client.Get(url)
+			if err != nil && protocol == "https://" {
+				resp, err = client.Get("http://" + w.Domain)
+			}
+
+			status := "active"
+			statusCode := 0
+			if err != nil {
+				status = "error"
+			} else if resp != nil {
+				statusCode = resp.StatusCode
+				resp.Body.Close()
+			}
+
+			// Update DB
+			db.DB.Model(&db.Website{}).Where("id = ?", w.ID).Updates(map[string]interface{}{
+				"status":      status,
+				"status_code": statusCode,
+				"last_check":  time.Now(),
+			})
+		}(&websites[i])
+	}
+	wg.Wait()
 }

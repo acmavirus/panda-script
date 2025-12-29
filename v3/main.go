@@ -11,6 +11,7 @@ import (
 	"github.com/acmavirus/panda-script/v3/internal/api"
 	"github.com/acmavirus/panda-script/v3/internal/cli"
 	"github.com/acmavirus/panda-script/v3/internal/db"
+	"github.com/acmavirus/panda-script/v3/internal/website"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cobra"
 )
@@ -80,6 +81,9 @@ func startWebServer() {
 	gin.SetMode(gin.ReleaseMode)
 
 	r := gin.Default()
+
+	// Start Background Status Checker
+	website.StartStatusChecker()
 
 	// API Routes
 	apiGroup := r.Group("/api")
