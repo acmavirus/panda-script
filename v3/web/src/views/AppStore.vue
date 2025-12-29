@@ -11,6 +11,14 @@ const installing = ref('')
 const dockerInstalled = ref(true)
 const installingDocker = ref(false)
 
+// Get hostname for app URLs
+const hostname = computed(() => {
+  if (typeof window !== 'undefined' && window.location) {
+    return window.location.hostname
+  }
+  return 'localhost'
+})
+
 const fetchApps = async () => {
   loading.value = true
   try {
@@ -151,7 +159,7 @@ onMounted(fetchApps)
             {{ installing === app.slug ? 'Installing...' : 'Install' }}
           </button>
           <template v-else>
-            <a :href="'http://' + window.location.hostname + ':' + app.port" target="_blank"
+            <a :href="'http://' + hostname + ':' + app.port" target="_blank"
                class="flex-1 py-2.5 bg-white/5 hover:bg-white/10 rounded-lg flex items-center justify-center gap-2 text-sm font-medium transition-all" style="color: var(--text-primary);">
               <ExternalLink :size="16" /> Open
             </a>
