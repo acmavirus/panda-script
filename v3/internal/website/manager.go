@@ -1,6 +1,7 @@
 package website
 
 import (
+	"crypto/tls"
 	"fmt"
 	"net/http"
 	"os"
@@ -79,11 +80,18 @@ func ListWebsites() ([]Website, error) {
 
 	// Fetch status codes concurrently
 	var wg sync.WaitGroup
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
 	client := &http.Client{
-		Timeout: 3 * time.Second,
-		// Don't follow redirects to see actual status
+		Timeout:   5 * time.Second,
+		Transport: tr,
+		// Follow redirects to see the final destination status
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			return http.ErrUseLastResponse
+			if len(via) >= 5 {
+				return fmt.Errorf("stopped after 5 redirects")
+			}
+			return nil
 		},
 	}
 
@@ -91,9 +99,23 @@ func ListWebsites() ([]Website, error) {
 		wg.Add(1)
 		go func(idx int) {
 			defer wg.Done()
-			url := "http://" + sites[idx].Domain
+
+			// Try HTTPS first if it has SSL, otherwise HTTP
+			protocol := "http://"
+			if sites[idx].SSL {
+				protocol = "https://"
+			}
+
+			url := protocol + sites[idx].Domain
 			resp, err := client.Get(url)
-			if err == nil {
+			if err != nil {
+				// If HTTPS failed but we haven't tried HTTP yet, try HTTP
+				if protocol == "https://" {
+					resp, err = client.Get("http://" + sites[idx].Domain)
+				}
+			}
+
+			if err == nil && resp != nil {
 				sites[idx].StatusCode = resp.StatusCode
 				resp.Body.Close()
 			}
@@ -195,26 +217,22 @@ func CreateWebsite(site Website) error {
 
 	// 4. Enable site (create symlink)
 	enabledDir := "/etc/nginx/sites-enabled"
-	enabledFile := filepath.Join(enabledDir, site.Domain+".conf")
-
-	// Remove existing symlink if any
-	os.Remove(enabledFile)
-
-	if err := os.Symlink(configFile, enabledFile); err != nil {
+	symlink := filepath.Join(enabledDir, site.Domain+".conf")
+	os.Remove(symlink) // Remove if exists
+	if err := os.Symlink(configFile, symlink); err != nil {
 		return fmt.Errorf("failed to enable site: %v", err)
 	}
 
-	// 5. Set permissions
-	system.Execute(fmt.Sprintf("chown -R www-data:www-data %s", site.Root))
-	system.Execute(fmt.Sprintf("chmod -R 755 %s", site.Root))
-
-	// 6. Test and reload nginx
-	if out, err := system.Execute("nginx -t"); err != nil {
-		return fmt.Errorf("nginx config test failed: %s", out)
-	}
-
+	// 5. Reload nginx
 	if _, err := system.Execute("systemctl reload nginx"); err != nil {
 		return fmt.Errorf("failed to reload nginx: %v", err)
+	}
+
+	// 6. Create index.php if it doesn't exist
+	phpPath := filepath.Join(site.Root, "index.php")
+	if _, err := os.Stat(phpPath); os.IsNotExist(err) {
+		phpContent := fmt.Sprintf("<?php phpinfo(); ?>")
+		os.WriteFile(phpPath, []byte(phpContent), 0644)
 	}
 
 	// 7. Create SSL if requested
