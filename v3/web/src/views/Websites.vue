@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
-import { Plus, Trash2, Globe, ExternalLink, Lock, Shield, FolderOpen, RefreshCw, Database, X } from 'lucide-vue-next'
+import { Plus, Trash2, Globe, ExternalLink, Lock, Shield, FolderOpen, RefreshCw, Database, X, Key } from 'lucide-vue-next'
 import Skeleton from '../components/Skeleton.vue'
 
 const websites = ref([])
@@ -110,6 +110,16 @@ const deleteWebsite = async (domain) => {
   } catch (err) {
     if (site) site._deleting = false
     error.value = 'Failed to delete website'
+  }
+}
+
+const fixPermissions = async (domain) => {
+  try {
+    await axios.post(`/api/websites/${domain}/fix-permissions`)
+    success.value = `Permissions fixed for ${domain}`
+    setTimeout(() => { success.value = '' }, 3000)
+  } catch (err) {
+    error.value = err.response?.data?.error || 'Failed to fix permissions'
   }
 }
 
@@ -266,6 +276,13 @@ onMounted(fetchWebsites)
                   data-tooltip="Add SSL"
                 >
                   <Shield :size="14" style="color: var(--color-warning);" />
+                </button>
+                <button 
+                  @click="fixPermissions(site.domain)"
+                  class="panda-btn panda-btn-ghost p-2"
+                  data-tooltip="Fix Permissions"
+                >
+                  <Key :size="14" style="color: var(--color-info);" />
                 </button>
                 <button 
                   @click="deleteWebsite(site.domain)"

@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
@@ -456,6 +457,35 @@ func generateRandomPassword(length int) string {
 		time.Sleep(1 * time.Nanosecond) // Ensure different nano time
 	}
 	return string(b)
+}
+
+func FixWebsitePermissionsHandler(c *gin.Context) {
+	domain := c.Param("domain")
+	webRoot := "/home/" + domain
+
+	// Check if directory exists
+	if _, err := os.Stat(webRoot); os.IsNotExist(err) {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Website directory not found"})
+		return
+	}
+
+	// Fix ownership: www-data:www-data
+	if _, err := system.Execute(fmt.Sprintf("chown -R www-data:www-data %s", webRoot)); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to set ownership: " + err.Error()})
+		return
+	}
+
+	// Fix permissions: 755 for directories, 644 for files
+	if _, err := system.Execute(fmt.Sprintf("find %s -type d -exec chmod 755 {} \\;", webRoot)); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to set directory permissions: " + err.Error()})
+		return
+	}
+	if _, err := system.Execute(fmt.Sprintf("find %s -type f -exec chmod 644 {} \\;", webRoot)); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to set file permissions: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Permissions fixed for " + domain})
 }
 
 // Database Handlers
