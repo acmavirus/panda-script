@@ -17,19 +17,94 @@ import (
 	"github.com/acmavirus/panda-script/v3/internal/system"
 )
 
+const nginxPHPTemplate = `server {
+    listen {{.Port}};
+    listen [::]:{{.Port}};
+    server_name {{.Domain}} www.{{.Domain}};
+    root {{.Root}};
+    index index.php index.html index.htm;
+
+    access_log /var/log/nginx/{{.Domain}}.access.log;
+    error_log /var/log/nginx/{{.Domain}}.error.log;
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location ~ \.php$ {
+        fastcgi_pass unix:/var/run/php/php-fpm.sock;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        include fastcgi_params;
+    }
+
+    location ~ /\.ht {
+        deny all;
+    }
+}
+`
+
+const nginxLaravelTemplate = `server {
+    listen {{.Port}};
+    listen [::]:{{.Port}};
+    server_name {{.Domain}} www.{{.Domain}};
+    root {{.Root}}/public;
+    index index.php index.html;
+
+    access_log /var/log/nginx/{{.Domain}}.access.log;
+    error_log /var/log/nginx/{{.Domain}}.error.log;
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location ~ \.php$ {
+        fastcgi_pass unix:/var/run/php/php-fpm.sock;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        include fastcgi_params;
+    }
+
+    location ~ /\.ht {
+        deny all;
+    }
+}
+`
+
+const nginxProxyTemplate = `server {
+    listen {{.Port}};
+    listen [::]:{{.Port}};
+    server_name {{.Domain}} www.{{.Domain}};
+
+    access_log /var/log/nginx/{{.Domain}}.access.log;
+    error_log /var/log/nginx/{{.Domain}}.error.log;
+
+    location / {
+        proxy_pass http://127.0.0.1:{{.BackendPort}};
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+}
+`
+
 var sslMutex sync.Mutex
 
 type Website struct {
-	Domain     string `json:"domain"`
-	Port       int    `json:"port"`
-	Root       string `json:"root"`
-	SSL        bool   `json:"ssl"`
-	SSLExpiry  string `json:"ssl_expiry,omitempty"`
-	PHPVer     string `json:"php_version"`
-	Status     string `json:"status"`
-	StatusCode int    `json:"status_code"`
-	HasDB      bool   `json:"has_db"`
-	Hot        bool   `json:"hot"`
+	Domain      string `json:"domain"`
+	Type        string `json:"type"`
+	BackendPort int    `json:"backend_port"`
+	Port        int    `json:"port"`
+	Root        string `json:"root"`
+	SSL         bool   `json:"ssl"`
+	SSLExpiry   string `json:"ssl_expiry,omitempty"`
+	PHPVer      string `json:"php_version"`
+	Status      string `json:"status"`
+	StatusCode  int    `json:"status_code"`
+	HasDB       bool   `json:"has_db"`
+	Hot         bool   `json:"hot"`
 }
 
 func ListWebsites() ([]Website, error) {
@@ -44,12 +119,20 @@ func ListWebsites() ([]Website, error) {
 		return []Website{}, nil
 	}
 
-	// Fetch all websites from DB to get Hot status
+	// Fetch all websites from DB to get Hot status and Type
 	var dbWebsites []db.Website
 	db.DB.Find(&dbWebsites)
-	hotMap := make(map[string]bool)
+	infoMap := make(map[string]struct {
+		Hot         bool
+		Type        string
+		BackendPort int
+	})
 	for _, w := range dbWebsites {
-		hotMap[w.Domain] = w.Hot
+		infoMap[w.Domain] = struct {
+			Hot         bool
+			Type        string
+			BackendPort int
+		}{Hot: w.Hot, Type: w.Type, BackendPort: w.BackendPort}
 	}
 
 	var sites []Website
@@ -94,14 +177,16 @@ func ListWebsites() ([]Website, error) {
 		}
 
 		sites = append(sites, Website{
-			Domain:    domain,
-			Port:      80,
-			Root:      root,
-			SSL:       hasSSL,
-			SSLExpiry: sslExpiry,
-			Status:    status,
-			HasDB:     hasDB,
-			Hot:       hotMap[domain],
+			Domain:      domain,
+			Type:        infoMap[domain].Type,
+			Port:        80,
+			Root:        root,
+			SSL:         hasSSL,
+			SSLExpiry:   sslExpiry,
+			Status:      status,
+			HasDB:       hasDB,
+			Hot:         infoMap[domain].Hot,
+			BackendPort: infoMap[domain].BackendPort,
 		})
 	}
 
@@ -169,7 +254,7 @@ func CreateWebsite(site Website) error {
 		return fmt.Errorf("website creation requires Linux")
 	}
 
-	// Default values
+	// 1. Initial Defaults
 	if site.Port == 0 {
 		site.Port = 80
 	}
@@ -177,12 +262,43 @@ func CreateWebsite(site Website) error {
 		site.Root = "/home/" + site.Domain
 	}
 
-	// 1. Create web root directory
+	// 2. Create web root directory
 	if err := os.MkdirAll(site.Root, 0755); err != nil {
 		return fmt.Errorf("failed to create web root: %v", err)
 	}
 
-	// 2. Create default index.html
+	// 3. Select Template and handle Type specific setup
+	var selectedTmpl string
+	switch site.Type {
+	case "laravel":
+		selectedTmpl = nginxLaravelTemplate
+		// Optional: Create laravel subfolders if doesn't exist
+		os.MkdirAll(filepath.Join(site.Root, "public"), 0755)
+	case "wordpress":
+		selectedTmpl = nginxPHPTemplate
+		// Check if doc root is empty, if so download WP
+		files, _ := os.ReadDir(site.Root)
+		if len(files) <= 1 { // Only index.html or empty
+			go func() {
+				// Run in background as it might take time
+				system.Execute(fmt.Sprintf("cd %s && wp core download --allow-root", site.Root))
+				system.Execute(fmt.Sprintf("chown -R www-data:www-data %s", site.Root))
+			}()
+		}
+	case "nodejs", "python", "java":
+		selectedTmpl = nginxProxyTemplate
+		if site.BackendPort == 0 {
+			if site.Type == "java" {
+				site.BackendPort = 8080
+			} else {
+				site.BackendPort = 3000
+			}
+		}
+	default:
+		selectedTmpl = nginxPHPTemplate
+	}
+
+	// 4. Create default index.html if empty
 	indexContent := fmt.Sprintf(`<!DOCTYPE html>
 <html>
 <head>
@@ -199,43 +315,17 @@ func CreateWebsite(site Website) error {
     <div class="container">
         <div class="logo">🐼</div>
         <h1>%s</h1>
-        <p>Your website is ready! Managed by Panda Panel.</p>
+        <p>Your website is ready (Type: %s)! Managed by Panda Panel.</p>
     </div>
 </body>
-</html>`, site.Domain, site.Domain)
+</html>`, site.Domain, site.Domain, site.Type)
 
 	indexPath := filepath.Join(site.Root, "index.html")
-	if err := os.WriteFile(indexPath, []byte(indexContent), 0644); err != nil {
-		return fmt.Errorf("failed to create index.html: %v", err)
+	if _, err := os.Stat(indexPath); os.IsNotExist(err) {
+		os.WriteFile(indexPath, []byte(indexContent), 0644)
 	}
 
-	// 3. Create Nginx config
-	const configTmpl = `server {
-    listen 80;
-    listen [::]:80;
-    server_name {{.Domain}} www.{{.Domain}};
-    root {{.Root}};
-    index index.php index.html index.htm;
-
-    access_log /var/log/nginx/{{.Domain}}.access.log;
-    error_log /var/log/nginx/{{.Domain}}.error.log;
-
-    location / {
-        try_files $uri $uri/ /index.php?$query_string;
-    }
-
-    location ~ \.php$ {
-        fastcgi_pass unix:/var/run/php/php-fpm.sock;
-        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
-        include fastcgi_params;
-    }
-
-    location ~ /\.ht {
-        deny all;
-    }
-}
-`
-	t, err := template.New("nginx").Parse(configTmpl)
+	t, err := template.New("nginx").Parse(selectedTmpl)
 	if err != nil {
 		return err
 	}
@@ -280,6 +370,27 @@ func CreateWebsite(site Website) error {
 			// Log error but don't fail the entire operation
 			fmt.Printf("SSL creation failed for %s: %v\n", site.Domain, err)
 		}
+	}
+
+	// 8. Save to DB
+	var dbSite db.Website
+	if err := db.DB.Where("domain = ?", site.Domain).First(&dbSite).Error; err != nil {
+		dbSite = db.Website{
+			Domain:      site.Domain,
+			Type:        site.Type,
+			Port:        site.Port,
+			BackendPort: site.BackendPort,
+			Root:        site.Root,
+			SSL:         site.SSL,
+		}
+		db.DB.Create(&dbSite)
+	} else {
+		dbSite.Type = site.Type
+		dbSite.Port = site.Port
+		dbSite.BackendPort = site.BackendPort
+		dbSite.Root = site.Root
+		dbSite.SSL = site.SSL
+		db.DB.Save(&dbSite)
 	}
 
 	return nil

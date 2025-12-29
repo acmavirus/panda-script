@@ -24,18 +24,20 @@ type User struct {
 }
 
 type Website struct {
-	ID         uint      `gorm:"primaryKey" json:"id"`
-	Domain     string    `gorm:"uniqueIndex;not null" json:"domain"`
-	Port       int       `json:"port"`
-	Root       string    `json:"root"`
-	SSL        bool      `json:"ssl"`
-	PHPVersion string    `json:"php_version"`
-	DiskQuota  int64     `json:"disk_quota"` // Bytes, 0 = unlimited
-	DiskUsed   int64     `json:"disk_used"`
-	OwnerID    uint      `json:"owner_id"` // For multi-user
-	Hot        bool      `json:"hot"`      // Highlighted website
-	CreatedAt  time.Time `json:"created_at"`
-	UpdatedAt  time.Time `json:"updated_at"`
+	ID          uint      `gorm:"primaryKey" json:"id"`
+	Domain      string    `gorm:"uniqueIndex;not null" json:"domain"`
+	Type        string    `json:"type"` // local, nodejs, php, laravel, wordpress, python
+	Port        int       `json:"port"`
+	Root        string    `json:"root"`
+	SSL         bool      `json:"ssl"`
+	PHPVersion  string    `json:"php_version"`
+	BackendPort int       `json:"backend_port"` // For Nodejs/Python proxy
+	DiskQuota   int64     `json:"disk_quota"`   // Bytes, 0 = unlimited
+	DiskUsed    int64     `json:"disk_used"`
+	OwnerID     uint      `json:"owner_id"` // For multi-user
+	Hot         bool      `json:"hot"`      // Highlighted website
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 type Setting struct {

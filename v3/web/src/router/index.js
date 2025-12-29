@@ -18,8 +18,6 @@ import Users from '../views/Users.vue'
 import AppStore from '../views/AppStore.vue'
 import HealthCheck from '../views/HealthCheck.vue'
 import Tools from '../views/Tools.vue'
-import Projects from '../views/Projects.vue'
-import CMSInstaller from '../views/CMSInstaller.vue'
 
 const router = createRouter({
   history: createWebHistory('/panda/'),
@@ -114,21 +112,6 @@ const router = createRouter({
           name: 'tools',
           component: Tools
         },
-        {
-          path: 'projects',
-          name: 'projects',
-          component: Projects
-        },
-        {
-          path: 'cms',
-          name: 'cms',
-          component: CMSInstaller
-        },
-        {
-          path: 'pm2',
-          name: 'pm2',
-          component: () => import('../views/PM2.vue')
-        }
       ]
     },
     {

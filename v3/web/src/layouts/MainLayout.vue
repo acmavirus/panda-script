@@ -41,9 +41,8 @@ const menuGroups = [
     icon: Rocket,
     items: [
       { icon: Globe, label: 'Websites', path: '/websites' },
-      { icon: Package, label: 'Projects', path: '/projects', badge: 'NEW' },
-      { icon: Container, label: 'Docker', path: '/docker' },
       { icon: Database, label: 'Databases', path: '/databases' },
+      { icon: Container, label: 'Docker', path: '/docker' },
     ]
   },
   {
@@ -63,7 +62,6 @@ const menuGroups = [
     items: [
       { icon: Code, label: 'PHP Manager', path: '/php' },
       { icon: Server, label: 'Nginx', path: '/nginx' },
-      { icon: Terminal, label: 'PM2 Manager', path: '/pm2' },
       { icon: Store, label: 'App Store', path: '/apps' },
     ]
   },

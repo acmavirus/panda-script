@@ -223,24 +223,6 @@ func RegisterRoutes(r *gin.RouterGroup) {
 		protected.POST("/files/compress", CompressFilesHandler)
 		protected.POST("/files/extract", ExtractArchiveHandler)
 
-		// WordPress
-		wpGroup := protected.Group("/wordpress")
-		{
-			wpGroup.POST("/install", InstallWordPressHandler)
-			wpGroup.POST("/wpcli/install", InstallWPCLIHandler)
-			wpGroup.POST("/wpcli/execute", ExecuteWPCLIHandler)
-			wpGroup.POST("/clone", CloneWebsiteHandler)
-		}
-
-		// Node.js / PM2
-		nodeGroup := protected.Group("/nodejs")
-		{
-			nodeGroup.POST("/install", InstallNodeJSHandler)
-			nodeGroup.GET("/pm2", ListPM2ProcessesHandler)
-			nodeGroup.POST("/pm2/:name/:action", PM2ActionHandler)
-			nodeGroup.GET("/pm2/:name/logs", GetPM2LogsHandler)
-		}
-
 		// Cache (Redis/Memcached)
 		cacheGroup := protected.Group("/cache")
 		{
@@ -287,36 +269,6 @@ func RegisterRoutes(r *gin.RouterGroup) {
 		protected.GET("/panel/ssl/status", GetPanelSSLStatusHandler)
 
 		// ============================================
-		// NEW: CMS Installer Routes
-		// ============================================
-		cmsGroup := protected.Group("/cms")
-		{
-			cmsGroup.GET("/", ListCMSHandler)
-			cmsGroup.POST("/install", InstallCMSHandler)
-		}
-
-		// ============================================
-		// NEW: Python Project Routes
-		// ============================================
-		pythonGroup := protected.Group("/python")
-		{
-			pythonGroup.GET("/projects", ListPythonProjectsHandler)
-			pythonGroup.POST("/projects", CreatePythonProjectHandler)
-			pythonGroup.POST("/projects/:name/:action", ManagePythonProjectHandler)
-			pythonGroup.DELETE("/projects/:name", DeletePythonProjectHandler)
-		}
-
-		// ============================================
-		// NEW: Java Project Routes
-		// ============================================
-		javaGroup := protected.Group("/java")
-		{
-			javaGroup.GET("/projects", ListJavaProjectsHandler)
-			javaGroup.POST("/projects", CreateJavaProjectHandler)
-			javaGroup.POST("/projects/:name/:action", ManageJavaProjectHandler)
-		}
-
-		// ============================================
 		// NEW: Deployment Workflow Routes
 		// ============================================
 		deployGroup := protected.Group("/deploy")
@@ -329,11 +281,6 @@ func RegisterRoutes(r *gin.RouterGroup) {
 			deployGroup.POST("/:name/auto-deploy", EnableAutoDeployHandler)
 		}
 
-		// Clone from GitHub
-		protected.POST("/clone", CloneFromGitHubHandler)
-
-		// Project Stats
-		protected.GET("/projects/stats", GetProjectStatsHandler)
 	}
 
 	// Public routes

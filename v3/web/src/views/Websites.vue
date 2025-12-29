@@ -1,14 +1,41 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import axios from 'axios'
-import { Plus, Trash2, Globe, ExternalLink, Lock, Shield, FolderOpen, RefreshCw, Database, X, Key, Flame } from 'lucide-vue-next'
+import { Plus, Trash2, Globe, ExternalLink, Lock, Shield, FolderOpen, RefreshCw, Database, X, Key, Flame, Box, Code, Terminal, Layers } from 'lucide-vue-next'
 import Skeleton from '../components/Skeleton.vue'
 
 const websites = ref([])
+const selectedTab = ref('all')
+const tabs = [
+  { id: 'all', label: 'All Sites', icon: Globe },
+  { id: 'local', label: 'Local', icon: FolderOpen },
+  { id: 'nodejs', label: 'Node.js', icon: Box },
+  { id: 'php', label: 'PHP', icon: Code },
+  { id: 'laravel', label: 'Laravel', icon: Layers },
+  { id: 'wordpress', label: 'Wordpress', icon: Globe },
+  { id: 'python', label: 'Python', icon: Terminal },
+  { id: 'java', label: 'Java', icon: Code }
+]
+
+const getTypeColor = (type) => {
+  const colors = {
+    local: '#94a3b8',
+    nodejs: '#68a063',
+    php: '#777bb4',
+    laravel: '#ff2d20',
+    wordpress: '#21759b',
+    python: '#3776ab',
+    java: '#b07219'
+  }
+  return colors[type] || '#94a3b8'
+}
+
 const showCreateModal = ref(false)
 const newWebsite = ref({
   domain: '',
+  type: 'local',
   port: 80,
+  backend_port: 3000,
   root: '/home',
   ssl: false
 })
@@ -17,6 +44,11 @@ const creating = ref(false)
 const creatingSSL = ref([]) // Queue of domains waiting for SSL
 const error = ref('')
 const success = ref('')
+
+const filteredWebsites = computed(() => {
+  if (selectedTab.value === 'all') return websites.value
+  return websites.value.filter(site => site.type === selectedTab.value)
+})
 
 const fetchWebsites = async () => {
   try {
@@ -43,7 +75,7 @@ const createWebsite = async () => {
     
     await axios.post('/api/websites', newWebsite.value)
     success.value = `Website ${newWebsite.value.domain} created successfully!`
-    newWebsite.value = { domain: '', port: 80, root: '/home', ssl: false }
+    newWebsite.value = { domain: '', type: 'local', port: 80, root: '/home', ssl: false }
     await fetchWebsites()
   } catch (err) {
     // Remove optimistic entry on error
@@ -183,6 +215,28 @@ onMounted(fetchWebsites)
       </button>
     </div>
 
+    <!-- Tabs -->
+    <div class="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+      <button 
+        v-for="tab in tabs" 
+        :key="tab.id"
+        @click="selectedTab = tab.id"
+        class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap"
+        :style="selectedTab === tab.id 
+          ? 'background: var(--color-primary); color: white;' 
+          : 'background: var(--bg-surface); color: var(--text-secondary); border: 1px solid var(--border-color);'"
+      >
+        <component :is="tab.icon" :size="14" />
+        {{ tab.label }}
+        <span 
+          class="ml-1 text-[10px] px-1.5 py-0.5 rounded-full"
+          :style="selectedTab === tab.id ? 'background: rgba(255,255,255,0.2);' : 'background: var(--bg-elevated);'"
+        >
+          {{ tab.id === 'all' ? websites.length : websites.filter(s => s.type === tab.id).length }}
+        </span>
+      </button>
+    </div>
+
     <!-- Websites Table (Minimal, Border-less) -->
     <div class="panda-card !p-0 overflow-hidden" v-if="!loading">
       <table class="panda-table">
@@ -190,6 +244,7 @@ onMounted(fetchWebsites)
           <tr>
             <th class="w-10"></th>
             <th>Domain</th>
+            <th class="hidden sm:table-cell">Type</th>
             <th class="hidden md:table-cell">Root</th>
             <th class="hidden sm:table-cell">SSL</th>
             <th class="w-32"></th>
@@ -197,7 +252,7 @@ onMounted(fetchWebsites)
         </thead>
         <tbody>
           <tr 
-            v-for="site in websites" 
+            v-for="site in filteredWebsites" 
             :key="site.domain"
             :class="{ 'opacity-50': site._deleting, 'animate-pulse': site._creating, 'bg-amber-500/5': site.hot }"
           >
@@ -234,6 +289,18 @@ onMounted(fetchWebsites)
                   </div>
                 </div>
               </div>
+            </td>
+            <td class="hidden sm:table-cell">
+              <span 
+                class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border" 
+                :style="{ 
+                  color: getTypeColor(site.type || 'local'), 
+                  borderColor: getTypeColor(site.type || 'local') + '40',
+                  background: getTypeColor(site.type || 'local') + '10'
+                }"
+              >
+                {{ site.type || 'local' }}
+              </span>
             </td>
             <td class="hidden md:table-cell">
               <code class="text-xs px-2 py-1 rounded" style="background: var(--bg-surface); color: var(--text-secondary);">
@@ -364,6 +431,36 @@ onMounted(fetchWebsites)
                   placeholder="example.com"
                   class="panda-input"
                   autofocus
+                >
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium mb-2" style="color: var(--text-secondary);">Site Type</label>
+                <div class="grid grid-cols-3 gap-2">
+                  <button 
+                    v-for="type in tabs.filter(t => t.id !== 'all')" 
+                    :key="type.id"
+                    type="button"
+                    @click="newWebsite.type = type.id"
+                    class="px-3 py-2 rounded-lg text-xs font-medium border transition-all"
+                    :style="newWebsite.type === type.id 
+                      ? 'background: var(--color-primary-subtle); color: var(--color-primary); border-color: var(--color-primary);' 
+                      : 'background: var(--bg-surface); color: var(--text-secondary); border-color: var(--border-color);'"
+                  >
+                    {{ type.label }}
+                  </button>
+                </div>
+              </div>
+
+              <!-- App Port (for proxy sites) -->
+              <div v-if="['nodejs', 'python'].includes(newWebsite.type)">
+                <label class="block text-sm font-medium mb-2" style="color: var(--text-secondary);">App Port (Backend)</label>
+                <input 
+                  v-model="newWebsite.backend_port" 
+                  type="number" 
+                  required
+                  class="panda-input"
+                  placeholder="3000"
                 >
               </div>
               
