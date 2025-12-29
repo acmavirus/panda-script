@@ -280,17 +280,22 @@ func ListPM2ProcessesHandler(c *gin.Context) {
 	for _, p := range raw {
 		proc := make(map[string]interface{})
 		proc["name"] = p["name"]
-		proc["status"] = p["status"]
 		proc["pid"] = p["pid"]
+
+		if env, ok := p["pm2_env"].(map[string]interface{}); ok {
+			proc["status"] = env["status"]
+			proc["uptime"] = env["pm_uptime"]
+			proc["restarts"] = env["restart_time"]
+		}
 
 		if monit, ok := p["monit"].(map[string]interface{}); ok {
 			proc["memory"] = monit["memory"]
 			proc["cpu"] = monit["cpu"]
 		}
 
-		if env, ok := p["pm2_env"].(map[string]interface{}); ok {
-			proc["uptime"] = env["pm_uptime"]
-			proc["restarts"] = env["restart_time"]
+		// Fallback status if env mapping failed
+		if proc["status"] == nil || proc["status"] == "" {
+			proc["status"] = p["status"]
 		}
 
 		processes = append(processes, proc)

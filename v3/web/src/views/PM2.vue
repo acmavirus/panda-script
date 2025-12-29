@@ -81,9 +81,11 @@ const getStatusBg = (status) => {
   }
 }
 
-const formatUptime = (uptime) => {
-  if (!uptime) return '-'
-  const seconds = Math.floor(uptime / 1000)
+const formatUptime = (startTime) => {
+  if (!startTime) return '-'
+  const now = Date.now()
+  const diff = now - startTime
+  const seconds = Math.floor(diff / 1000)
   const minutes = Math.floor(seconds / 60)
   const hours = Math.floor(minutes / 60)
   const days = Math.floor(hours / 24)
