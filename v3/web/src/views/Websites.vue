@@ -274,6 +274,8 @@ onMounted(fetchWebsites)
                 Add your first site
               </button>
             </td>
+          </tr>
+        </tbody>
       </table>
     </div>
 
