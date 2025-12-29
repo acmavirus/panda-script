@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import axios from 'axios'
 import { Plus, Trash2, Globe, ExternalLink, Lock, Shield, FolderOpen, RefreshCw, Database, X, Key, Flame, Box, Code, Terminal, Layers } from 'lucide-vue-next'
 import Skeleton from '../components/Skeleton.vue'
@@ -181,7 +181,18 @@ const formatLastCheck = (dateStr) => {
   return `${Math.floor(diff / 86400)} ngày trước`
 }
 
-onMounted(fetchWebsites)
+// Persist tab selection
+watch(selectedTab, (newTab) => {
+  localStorage.setItem('panda_websites_active_tab', newTab)
+})
+
+onMounted(() => {
+  const savedTab = localStorage.getItem('panda_websites_active_tab')
+  if (savedTab && tabs.some(t => t.id === savedTab)) {
+    selectedTab.value = savedTab
+  }
+  fetchWebsites()
+})
 </script>
 
 <template>
