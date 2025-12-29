@@ -398,11 +398,13 @@ func KillProcessHandler(c *gin.Context) {
 var defaultApps = []db.App{
 	// System Tools (not Docker)
 	{Name: "Node.js + PM2", Slug: "nodejs", Description: "JavaScript runtime with PM2 process manager", Icon: "💚", DockerImage: "system", Port: 0},
+	{Name: "MySQL Server", Slug: "mysql-native", Description: "MySQL database (native install)", Icon: "🐬", DockerImage: "system", Port: 3306},
+	{Name: "MariaDB Server", Slug: "mariadb", Description: "MariaDB database (MySQL fork)", Icon: "🧊", DockerImage: "system", Port: 3306},
 	// Docker Apps - Databases
-	{Name: "MySQL", Slug: "mysql", Description: "Popular relational database", Icon: "🗄️", DockerImage: "mysql:8.0", Port: 3306},
-	{Name: "Redis", Slug: "redis", Description: "In-memory data store", Icon: "🔴", DockerImage: "redis:alpine", Port: 6379},
-	{Name: "PostgreSQL", Slug: "postgresql", Description: "Advanced open-source database", Icon: "🐘", DockerImage: "postgres:15", Port: 5432},
-	{Name: "MongoDB", Slug: "mongodb", Description: "NoSQL document database", Icon: "🍃", DockerImage: "mongo:6", Port: 27017},
+	{Name: "MySQL (Docker)", Slug: "mysql", Description: "MySQL in Docker container", Icon: "🗄️", DockerImage: "mysql:8.0", Port: 3306},
+	{Name: "Redis (Docker)", Slug: "redis", Description: "Redis in Docker container", Icon: "🔴", DockerImage: "redis:alpine", Port: 6379},
+	{Name: "PostgreSQL (Docker)", Slug: "postgresql", Description: "PostgreSQL in Docker container", Icon: "🐘", DockerImage: "postgres:15", Port: 5432},
+	{Name: "MongoDB (Docker)", Slug: "mongodb", Description: "MongoDB in Docker container", Icon: "🍃", DockerImage: "mongo:6", Port: 27017},
 	// Docker Apps - Web
 	{Name: "Nextcloud", Slug: "nextcloud", Description: "Self-hosted cloud storage", Icon: "☁️", DockerImage: "nextcloud:latest", Port: 8080},
 	{Name: "WordPress", Slug: "wordpress", Description: "Popular CMS", Icon: "📝", DockerImage: "wordpress:latest", Port: 8081},
@@ -458,6 +460,12 @@ func InstallAppHandler(c *gin.Context) {
 	case "nodejs":
 		isSystemApp = true
 		cmd = `curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && apt-get install -y nodejs && npm install -g pm2 && pm2 startup && node -v && pm2 -v`
+	case "mysql-native":
+		isSystemApp = true
+		cmd = `apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y mysql-server && systemctl enable mysql && systemctl start mysql && mysql -V`
+	case "mariadb":
+		isSystemApp = true
+		cmd = `apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y mariadb-server && systemctl enable mariadb && systemctl start mariadb && mysql -V`
 	// Docker Apps - Databases
 	case "mysql":
 		cmd = "docker run -d --name panda-mysql --restart unless-stopped -e MYSQL_ROOT_PASSWORD=panda123 -p 3306:3306 -v panda-mysql-data:/var/lib/mysql mysql:8.0"
