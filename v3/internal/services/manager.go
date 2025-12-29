@@ -53,12 +53,37 @@ func ListServices() ([]Service, error) {
 
 	var services []Service
 
+	// Check systemd services
 	for _, name := range knownServices {
 		svc, err := GetStatus(name)
 		if err != nil {
 			continue // Service not installed
 		}
 		services = append(services, *svc)
+	}
+
+	// Also check Docker containers for database services
+	dockerServices := map[string]string{
+		"panda-mysql":      "MySQL (Docker)",
+		"panda-redis":      "Redis (Docker)",
+		"panda-postgresql": "PostgreSQL (Docker)",
+		"panda-mongodb":    "MongoDB (Docker)",
+	}
+
+	for containerName, displayName := range dockerServices {
+		out, err := system.Execute(fmt.Sprintf("docker inspect -f '{{.State.Status}}' %s 2>/dev/null", containerName))
+		if err == nil {
+			status := strings.TrimSpace(out)
+			if status != "" {
+				svc := Service{
+					Name:        displayName,
+					Status:      status, // "running", "exited", etc.
+					Enabled:     true,
+					Description: fmt.Sprintf("Docker container: %s", containerName),
+				}
+				services = append(services, svc)
+			}
+		}
 	}
 
 	return services, nil
