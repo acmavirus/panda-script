@@ -413,7 +413,7 @@ var defaultApps = []db.App{
 	{Name: "n8n", Slug: "n8n", Description: "Workflow automation", Icon: "🔄", DockerImage: "n8nio/n8n:latest", Port: 5678},
 	{Name: "Portainer", Slug: "portainer", Description: "Docker management", Icon: "🐳", DockerImage: "portainer/portainer-ce:latest", Port: 9000},
 	{Name: "Uptime Kuma", Slug: "uptime-kuma", Description: "Uptime monitoring", Icon: "📊", DockerImage: "louislam/uptime-kuma:latest", Port: 3001},
-	{Name: "phpMyAdmin", Slug: "phpmyadmin", Description: "MySQL web interface", Icon: "🗃️", DockerImage: "phpmyadmin/phpmyadmin", Port: 8081},
+	{Name: "phpMyAdmin", Slug: "phpmyadmin", Description: "MySQL web interface (Native)", Icon: "🗃️", DockerImage: "system", Port: 8081},
 }
 
 func ListAppsHandler(c *gin.Context) {
@@ -468,6 +468,55 @@ func InstallAppHandler(c *gin.Context) {
 	case "mariadb":
 		isSystemApp = true
 		cmd = `apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y mariadb-server && systemctl enable mariadb && systemctl start mariadb && mysql -V`
+	case "phpmyadmin":
+		isSystemApp = true
+		blowfishSecret, _ := system.Execute("openssl rand -hex 16")
+		blowfishSecret = strings.TrimSpace(blowfishSecret)
+		// Native installation script for phpMyAdmin
+		cmd = fmt.Sprintf(`
+			# Revert MariaDB bind-address to 127.0.0.1 for security
+			if [ -f /etc/mysql/mariadb.conf.d/50-server.cnf ]; then
+				sed -i "s/bind-address            = 0.0.0.0/bind-address            = 127.0.0.1/" /etc/mysql/mariadb.conf.d/50-server.cnf
+				systemctl restart mariadb
+			elif [ -f /etc/mysql/my.cnf ]; then
+				sed -i "s/bind-address            = 0.0.0.0/bind-address            = 127.0.0.1/" /etc/mysql/my.cnf
+				systemctl restart mysql
+			fi
+
+			apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y wget tar php-mbstring php-zip php-gd php-json php-curl php-mysql php-fpm
+			
+			# Detect PHP version
+			PHP_VERSION=$(php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;')
+
+			mkdir -p /opt/phpmyadmin
+			wget https://www.phpmyadmin.net/downloads/phpMyAdmin-latest-all-languages.tar.gz -O /tmp/phpmyadmin.tar.gz
+			tar -xzf /tmp/phpmyadmin.tar.gz -C /opt/phpmyadmin --strip-components=1
+			cp /opt/phpmyadmin/config.sample.inc.php /opt/phpmyadmin/config.inc.php
+			sed -i "s/\$cfg\['blowfish_secret'\] = '';/\$cfg\['blowfish_secret'\] = '%s';/" /opt/phpmyadmin/config.inc.php
+			sed -i "s/\$cfg\['Servers'\]\[\$i\]\['host'\] = 'localhost';/\$cfg\['Servers'\]\[\$i\]\['host'\] = '127.0.0.1';/" /opt/phpmyadmin/config.inc.php
+			chown -R www-data:www-data /opt/phpmyadmin
+			chmod -R 755 /opt/phpmyadmin
+			
+			# Configure Nginx for phpMyAdmin
+			cat > /etc/nginx/sites-available/phpmyadmin.conf <<EOF
+server {
+    listen 8081;
+    root /opt/phpmyadmin;
+    index index.php;
+
+    location / {
+        try_files \$uri \$uri/ =404;
+    }
+
+    location ~ \.php$ {
+        include snippets/fastcgi-php.conf;
+        fastcgi_pass unix:/var/run/php/php\$PHP_VERSION-fpm.sock;
+    }
+}
+EOF
+			ln -sf /etc/nginx/sites-available/phpmyadmin.conf /etc/nginx/sites-enabled/
+			nginx -t && systemctl reload nginx
+		`, blowfishSecret)
 	// Docker Apps - Databases
 	case "mysql":
 		cmd = "docker run -d --name panda-mysql --restart unless-stopped -e MYSQL_ROOT_PASSWORD=panda123 -p 3306:3306 -v panda-mysql-data:/var/lib/mysql mysql:8.0"
@@ -475,35 +524,8 @@ func InstallAppHandler(c *gin.Context) {
 		cmd = "docker run -d --name panda-redis --restart unless-stopped -p 6379:6379 -v panda-redis-data:/data redis:alpine"
 	case "postgresql":
 		cmd = "docker run -d --name panda-postgresql --restart unless-stopped -e POSTGRES_PASSWORD=panda123 -p 5432:5432 -v panda-postgres-data:/var/lib/postgresql/data postgres:15"
-	case "mongodb":
-		cmd = "docker run -d --name panda-mongodb --restart unless-stopped -p 27017:27017 -v panda-mongo-data:/data/db mongo:6"
-	case "portainer":
-		cmd = "docker run -d --name panda-portainer --restart unless-stopped -p 9000:9000 -v /var/run/docker.sock:/var/run/docker.sock -v panda-portainer-data:/data portainer/portainer-ce:latest"
-	case "phpmyadmin":
-		// Check if mysql container exists
-		mysqlHost := "172.17.0.1" // Docker host (native mysql)
-		dockerCheck, _ := system.Execute("docker ps --filter name=panda-mysql --format '{{.Names}}'")
-		if strings.TrimSpace(dockerCheck) == "panda-mysql" {
-			mysqlHost = "panda-mysql"
-		} else {
-			dockerCheck, _ = system.Execute("docker ps --filter name=mysql --format '{{.Names}}'")
-			if strings.TrimSpace(dockerCheck) == "mysql" {
-				mysqlHost = "mysql"
-			}
-		}
-
-		linkArg := ""
-		if mysqlHost != "172.17.0.1" {
-			linkArg = "--link " + mysqlHost + ":db"
-		}
-
-		cmd = fmt.Sprintf("docker run -d --name panda-phpmyadmin --restart unless-stopped %s -e PMA_HOST=%s -p 8081:80 phpmyadmin/phpmyadmin", linkArg, mysqlHost)
-	default:
-		// Generic docker apps - port mapping to container port 80
-		cmd = "docker run -d --name panda-" + app.Slug + " --restart unless-stopped -p " + strconv.Itoa(app.Port) + ":80 " + app.DockerImage
 	}
 
-	// Ignore unused variable for now
 	_ = isSystemApp
 
 	out, err := system.Execute(cmd)
@@ -538,6 +560,14 @@ func UninstallAppHandler(c *gin.Context) {
 	// Stop and remove container
 	system.Execute("docker stop panda-" + app.Slug)
 	system.Execute("docker rm panda-" + app.Slug)
+
+	// Native uninstallation
+	if app.Slug == "phpmyadmin" {
+		system.Execute("rm -rf /opt/phpmyadmin")
+		system.Execute("rm -f /etc/nginx/sites-available/phpmyadmin.conf")
+		system.Execute("rm -f /etc/nginx/sites-enabled/phpmyadmin.conf")
+		system.Execute("systemctl reload nginx")
+	}
 
 	app.Installed = false
 	app.ContainerID = ""
