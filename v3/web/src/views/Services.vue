@@ -147,8 +147,8 @@ onMounted(fetchServices)
               <span class="text-sm truncate max-w-xs block" style="color: var(--text-muted);">{{ svc.description }}</span>
             </td>
             <td>
-              <!-- Contextual Actions -->
-              <div class="contextual-actions flex items-center gap-1 justify-end">
+              <!-- Service Actions - Always Visible -->
+              <div class="flex items-center gap-1 justify-end">
                 <button 
                   v-if="svc.status !== 'active' && svc.status !== 'running'"
                   @click="serviceAction(svc.name, 'start')"
