@@ -45,6 +45,7 @@ const loading = ref(true)
 const creating = ref(false)
 const creatingSSL = ref([]) // Queue of domains waiting for SSL
 const changingPHP = ref(null) // domain of site being changed
+const fixingPermissions = ref([]) // Queue of domains waiting for fix
 const error = ref('')
 const success = ref('')
 
@@ -159,12 +160,17 @@ const deleteWebsite = async (domain) => {
 }
 
 const fixPermissions = async (domain) => {
+  if (fixingPermissions.value.includes(domain)) return
+  fixingPermissions.value.push(domain)
+  
   try {
     await axios.post(`/api/websites/${domain}/fix-permissions`)
     success.value = `Permissions fixed for ${domain}`
     setTimeout(() => { success.value = '' }, 3000)
   } catch (err) {
     error.value = err.response?.data?.error || 'Failed to fix permissions'
+  } finally {
+    fixingPermissions.value = fixingPermissions.value.filter(d => d !== domain)
   }
 }
 
@@ -461,10 +467,12 @@ onMounted(() => {
                 </button>
                 <button 
                   @click="fixPermissions(site.domain)"
+                  :disabled="fixingPermissions.includes(site.domain)"
                   class="panda-btn panda-btn-ghost p-2"
                   data-tooltip="Fix Permissions"
                 >
-                  <Key :size="14" style="color: var(--color-info);" />
+                  <RefreshCw v-if="fixingPermissions.includes(site.domain)" :size="14" class="animate-spin opacity-50" />
+                  <Key v-else :size="14" style="color: var(--color-info);" />
                 </button>
                 <button 
                   @click="deleteWebsite(site.domain)"
