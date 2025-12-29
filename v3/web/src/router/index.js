@@ -11,7 +11,6 @@ import Databases from '../views/Databases.vue'
 import Settings from '../views/Settings.vue'
 import Services from '../views/Services.vue'
 import PHP from '../views/PHP.vue'
-import SSL from '../views/SSL.vue'
 import Security from '../views/Security.vue'
 import Backup from '../views/Backup.vue'
 import Processes from '../views/Processes.vue'
@@ -79,11 +78,6 @@ const router = createRouter({
           path: 'nginx',
           name: 'nginx',
           component: () => import('../views/Nginx.vue')
-        },
-        {
-          path: 'ssl',
-          name: 'ssl',
-          component: SSL
         },
         {
           path: 'security',
