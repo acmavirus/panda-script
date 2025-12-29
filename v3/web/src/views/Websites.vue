@@ -159,6 +159,9 @@ onMounted(fetchWebsites)
                   <div class="font-medium" style="color: var(--text-primary);">{{ site.domain }}</div>
                   <div class="text-xs" style="color: var(--text-muted);">
                     {{ site.ssl ? 'HTTPS' : 'HTTP' }} • Port {{ site.port }}
+                    <span v-if="site.status_code" :style="{ color: site.status_code >= 400 ? 'var(--color-error)' : (site.status_code >= 300 ? 'var(--color-warning)' : '#22c55e') }">
+                      • {{ site.status_code }}
+                    </span>
                   </div>
                 </div>
               </div>

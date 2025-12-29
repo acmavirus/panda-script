@@ -2,12 +2,14 @@ package website
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
 	"text/template"
+	"time"
 
 	"github.com/acmavirus/panda-script/v3/internal/system"
 )
@@ -15,13 +17,14 @@ import (
 var sslMutex sync.Mutex
 
 type Website struct {
-	Domain    string `json:"domain"`
-	Port      int    `json:"port"`
-	Root      string `json:"root"`
-	SSL       bool   `json:"ssl"`
-	SSLExpiry string `json:"ssl_expiry,omitempty"`
-	PHPVer    string `json:"php_version"`
-	Status    string `json:"status"`
+	Domain     string `json:"domain"`
+	Port       int    `json:"port"`
+	Root       string `json:"root"`
+	SSL        bool   `json:"ssl"`
+	SSLExpiry  string `json:"ssl_expiry,omitempty"`
+	PHPVer     string `json:"php_version"`
+	Status     string `json:"status"`
+	StatusCode int    `json:"status_code"`
 }
 
 func ListWebsites() ([]Website, error) {
@@ -73,6 +76,31 @@ func ListWebsites() ([]Website, error) {
 			Status:    status,
 		})
 	}
+
+	// Fetch status codes concurrently
+	var wg sync.WaitGroup
+	client := &http.Client{
+		Timeout: 3 * time.Second,
+		// Don't follow redirects to see actual status
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
+
+	for i := range sites {
+		wg.Add(1)
+		go func(idx int) {
+			defer wg.Done()
+			url := "http://" + sites[idx].Domain
+			resp, err := client.Get(url)
+			if err == nil {
+				sites[idx].StatusCode = resp.StatusCode
+				resp.Body.Close()
+			}
+		}(i)
+	}
+	wg.Wait()
+
 	return sites, nil
 }
 
