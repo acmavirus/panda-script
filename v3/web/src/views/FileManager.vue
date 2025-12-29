@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted, computed, shallowRef } from 'vue'
+import { useRoute } from 'vue-router'
 import axios from 'axios'
 import { Folder, File, ArrowLeft, Trash2, Edit2, FilePlus, FolderPlus, RefreshCw, Save, X, Upload, Download } from 'lucide-vue-next'
 import { VueMonacoEditor } from '@guolao/vue-monaco-editor'
@@ -175,7 +176,9 @@ const getLanguage = (filename) => {
 }
 
 onMounted(() => {
-  loadFiles('/')
+  const route = useRoute()
+  const initialPath = route.query.path || '/'
+  loadFiles(initialPath)
 })
 </script>
 

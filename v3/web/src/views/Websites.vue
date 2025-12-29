@@ -206,7 +206,7 @@ onMounted(fetchWebsites)
                   <ExternalLink :size="14" />
                 </a>
                 <router-link 
-                  :to="'/panda/files?path=/home/' + site.domain"
+                  :to="'/files?path=/home/' + site.domain"
                   class="panda-btn panda-btn-ghost p-2"
                   data-tooltip="Files"
                 >
