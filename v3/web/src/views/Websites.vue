@@ -14,7 +14,7 @@ const newWebsite = ref({
 })
 const loading = ref(true)
 const creating = ref(false)
-const creatingSSL = ref('')
+const creatingSSL = ref([]) // Queue of domains waiting for SSL
 const error = ref('')
 const success = ref('')
 
@@ -57,7 +57,9 @@ const createWebsite = async () => {
 const createSSL = async (domain) => {
   if (!confirm(`Create SSL certificate for ${domain}?\n\nThis will use Let's Encrypt to generate a free SSL certificate.`)) return
   
-  creatingSSL.value = domain
+  if (creatingSSL.value.includes(domain)) return
+  creatingSSL.value.push(domain)
+  
   try {
     await axios.post(`/api/websites/${domain}/ssl`)
     success.value = `SSL certificate created for ${domain}!`
@@ -65,7 +67,7 @@ const createSSL = async (domain) => {
   } catch (err) {
     error.value = err.response?.data?.error || 'Failed to create SSL certificate'
   } finally {
-    creatingSSL.value = ''
+    creatingSSL.value = creatingSSL.value.filter(d => d !== domain)
   }
 }
 
@@ -178,12 +180,15 @@ onMounted(fetchWebsites)
               <button 
                 v-else
                 @click="createSSL(site.domain)"
-                :disabled="creatingSSL === site.domain"
+                :disabled="creatingSSL.includes(site.domain)"
                 class="panda-btn panda-btn-ghost text-xs px-3 py-1.5 gap-1"
                 style="color: var(--color-warning);"
               >
                 <Shield :size="12" />
-                {{ creatingSSL === site.domain ? 'Creating...' : 'Add SSL' }}
+                <span v-if="creatingSSL.includes(site.domain)">
+                  {{ creatingSSL[0] === site.domain ? 'Creating...' : 'Waiting...' }}
+                </span>
+                <span v-else>Add SSL</span>
               </button>
             </td>
             <td>
@@ -207,7 +212,7 @@ onMounted(fetchWebsites)
                 <button 
                   v-if="!site.ssl"
                   @click="createSSL(site.domain)"
-                  :disabled="creatingSSL === site.domain"
+                  :disabled="creatingSSL.includes(site.domain)"
                   class="panda-btn panda-btn-ghost p-2 sm:hidden"
                   data-tooltip="Add SSL"
                 >
