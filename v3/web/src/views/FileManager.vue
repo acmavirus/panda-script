@@ -2,7 +2,7 @@
 import { ref, onMounted, computed, shallowRef } from 'vue'
 import { useRoute } from 'vue-router'
 import axios from 'axios'
-import { Folder, File, ArrowLeft, Trash2, Edit2, FilePlus, FolderPlus, RefreshCw, Save, X, Upload, Download } from 'lucide-vue-next'
+import { Folder, File, ArrowLeft, Trash2, Edit2, FilePlus, FolderPlus, RefreshCw, Save, X, Upload, Download, Archive } from 'lucide-vue-next'
 import { VueMonacoEditor } from '@guolao/vue-monaco-editor'
 
 const currentPath = ref('/')
@@ -107,6 +107,28 @@ const deleteItem = async (file) => {
     loadFiles(currentPath.value)
   } catch (err) {
     alert('Failed to delete: ' + (err.response?.data?.error || err.message))
+  }
+}
+
+const isArchive = (filename) => {
+  const ext = filename.toLowerCase()
+  return ext.endsWith('.zip') || ext.endsWith('.tar.gz') || ext.endsWith('.tgz') || ext.endsWith('.tar.bz2')
+}
+
+const extractFile = async (file) => {
+  if (!confirm(`Extract ${file.name} to the current folder?`)) return
+  try {
+    loading.value = true
+    await axios.post('/api/files/extract', {
+      archive: file.path,
+      output: currentPath.value
+    })
+    loadFiles(currentPath.value)
+    alert('Extracted successfully')
+  } catch (err) {
+    alert('Extraction failed: ' + (err.response?.data?.error || err.message))
+  } finally {
+    loading.value = false
   }
 }
 
@@ -260,6 +282,14 @@ onMounted(() => {
               <div class="col-span-2 text-[13px] text-gray-500 font-mono">{{ file.is_dir ? '-' : formatSize(file.size) }}</div>
               <div class="col-span-2 text-[13px] text-gray-500 font-mono">{{ file.mode }}</div>
               <div class="col-span-2 flex items-center justify-end space-x-2 md:opacity-0 group-hover:opacity-100 transition-opacity pr-2">
+                <button 
+                  v-if="!file.is_dir && isArchive(file.name)"
+                  @click.stop="extractFile(file)" 
+                  class="p-1.5 hover:bg-orange-500/10 rounded-lg text-gray-400 hover:text-orange-500" 
+                  title="Extract Here"
+                >
+                  <Archive :size="16" />
+                </button>
                 <button @click.stop="openItem(file)" class="p-1.5 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white" title="Edit/Open">
                   <Edit2 :size="16" />
                 </button>
