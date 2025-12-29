@@ -484,9 +484,6 @@ func InstallAppHandler(c *gin.Context) {
 			fi
 
 			apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y wget tar php-mbstring php-zip php-gd php-json php-curl php-mysql php-fpm
-			
-			# Detect PHP version
-			PHP_VERSION=$(php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;')
 
 			mkdir -p /opt/phpmyadmin
 			wget https://www.phpmyadmin.net/downloads/phpMyAdmin-latest-all-languages.tar.gz -O /tmp/phpmyadmin.tar.gz
@@ -510,7 +507,7 @@ server {
 
     location ~ \.php$ {
         include snippets/fastcgi-php.conf;
-        fastcgi_pass unix:/var/run/php/php\$PHP_VERSION-fpm.sock;
+        fastcgi_pass unix:/var/run/php/php-fpm.sock;
     }
 }
 EOF
