@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
-import { Plus, Trash2, Globe, ExternalLink, Lock, Shield, FolderOpen, RefreshCw, Database, X, Key } from 'lucide-vue-next'
+import { Plus, Trash2, Globe, ExternalLink, Lock, Shield, FolderOpen, RefreshCw, Database, X, Key, Flame } from 'lucide-vue-next'
 import Skeleton from '../components/Skeleton.vue'
 
 const websites = ref([])
@@ -123,6 +123,20 @@ const fixPermissions = async (domain) => {
   }
 }
 
+const toggleHot = async (domain) => {
+  try {
+    const res = await axios.post(`/api/websites/${domain}/hot`)
+    const site = websites.value.find(w => w.domain === domain)
+    if (site) {
+      site.hot = res.data.hot
+      // Re-fetch to apply sort if needed, or sort locally
+      fetchWebsites()
+    }
+  } catch (err) {
+    console.error('Failed to toggle hot:', err)
+  }
+}
+
 onMounted(fetchWebsites)
 </script>
 
@@ -174,6 +188,7 @@ onMounted(fetchWebsites)
       <table class="panda-table">
         <thead>
           <tr>
+            <th class="w-10"></th>
             <th>Domain</th>
             <th class="hidden md:table-cell">Root</th>
             <th class="hidden sm:table-cell">SSL</th>
@@ -184,8 +199,22 @@ onMounted(fetchWebsites)
           <tr 
             v-for="site in websites" 
             :key="site.domain"
-            :class="{ 'opacity-50': site._deleting, 'animate-pulse': site._creating }"
+            :class="{ 'opacity-50': site._deleting, 'animate-pulse': site._creating, 'bg-amber-500/5': site.hot }"
           >
+            <td class="pl-4">
+              <button 
+                @click="toggleHot(site.domain)" 
+                class="hover:scale-125 transition-transform duration-200 focus:outline-none"
+                :title="site.hot ? 'Bỏ đánh dấu Hot' : 'Đánh dấu Hot'"
+              >
+                <Flame 
+                  :size="18" 
+                  :fill="site.hot ? '#f59e0b' : 'none'"
+                  :style="{ color: site.hot ? '#f59e0b' : 'rgba(255,255,255,0.1)' }" 
+                  :class="{ 'drop-shadow-[0_0_8px_rgba(245,158,11,0.6)]': site.hot }" 
+                />
+              </button>
+            </td>
             <td>
               <div class="flex items-center gap-3">
                 <div 

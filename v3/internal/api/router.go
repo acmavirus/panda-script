@@ -57,6 +57,7 @@ func RegisterRoutes(r *gin.RouterGroup) {
 			webGroup.POST("/:domain/ssl", CreateWebsiteSSLHandler)
 			webGroup.POST("/:domain/db", CreateWebsiteDBHandler)
 			webGroup.POST("/:domain/fix-permissions", FixWebsitePermissionsHandler)
+			webGroup.POST("/:domain/hot", ToggleWebsiteHotHandler)
 		}
 
 		// Databases

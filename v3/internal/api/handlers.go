@@ -408,6 +408,23 @@ func CreateWebsiteSSLHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "SSL certificate created successfully for " + domain})
 }
 
+func ToggleWebsiteHotHandler(c *gin.Context) {
+	domain := c.Param("domain")
+	var site db.Website
+	if err := db.DB.Where("domain = ?", domain).First(&site).Error; err != nil {
+		// Not in DB yet, create from nginx info
+		site = db.Website{
+			Domain: domain,
+			Hot:    true,
+		}
+		db.DB.Create(&site)
+	} else {
+		site.Hot = !site.Hot
+		db.DB.Save(&site)
+	}
+	c.JSON(http.StatusOK, gin.H{"hot": site.Hot})
+}
+
 func CreateWebsiteDBHandler(c *gin.Context) {
 	domain := c.Param("domain")
 	// Sanitize domain for DB name and User (e.g. example.com -> example_com)

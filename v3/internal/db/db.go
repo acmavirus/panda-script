@@ -33,6 +33,7 @@ type Website struct {
 	DiskQuota  int64     `json:"disk_quota"` // Bytes, 0 = unlimited
 	DiskUsed   int64     `json:"disk_used"`
 	OwnerID    uint      `json:"owner_id"` // For multi-user
+	Hot        bool      `json:"hot"`      // Highlighted website
 	CreatedAt  time.Time `json:"created_at"`
 	UpdatedAt  time.Time `json:"updated_at"`
 }
@@ -96,7 +97,7 @@ func Init() {
 	DB, err = gorm.Open(sqlite.Open(dbPath), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Silent), // Reduce log noise
 	})
-	
+
 	if err != nil {
 		log.Fatal("Failed to connect to database:", err)
 	}

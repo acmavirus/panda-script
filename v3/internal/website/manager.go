@@ -7,11 +7,13 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strings"
 	"sync"
 	"text/template"
 	"time"
 
+	"github.com/acmavirus/panda-script/v3/internal/db"
 	"github.com/acmavirus/panda-script/v3/internal/system"
 )
 
@@ -27,6 +29,7 @@ type Website struct {
 	Status     string `json:"status"`
 	StatusCode int    `json:"status_code"`
 	HasDB      bool   `json:"has_db"`
+	Hot        bool   `json:"hot"`
 }
 
 func ListWebsites() ([]Website, error) {
@@ -39,6 +42,14 @@ func ListWebsites() ([]Website, error) {
 	files, err := os.ReadDir(enabledDir)
 	if err != nil {
 		return []Website{}, nil
+	}
+
+	// Fetch all websites from DB to get Hot status
+	var dbWebsites []db.Website
+	db.DB.Find(&dbWebsites)
+	hotMap := make(map[string]bool)
+	for _, w := range dbWebsites {
+		hotMap[w.Domain] = w.Hot
 	}
 
 	var sites []Website
@@ -90,6 +101,7 @@ func ListWebsites() ([]Website, error) {
 			SSLExpiry: sslExpiry,
 			Status:    status,
 			HasDB:     hasDB,
+			Hot:       hotMap[domain],
 		})
 	}
 
@@ -137,6 +149,17 @@ func ListWebsites() ([]Website, error) {
 		}(i)
 	}
 	wg.Wait()
+
+	// Sort by Hot (desc) then Domain (asc)
+	sort.Slice(sites, func(i, j int) bool {
+		if sites[i].Hot && !sites[j].Hot {
+			return true
+		}
+		if !sites[i].Hot && sites[j].Hot {
+			return false
+		}
+		return sites[i].Domain < sites[j].Domain
+	})
 
 	return sites, nil
 }
