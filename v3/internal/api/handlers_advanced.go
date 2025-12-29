@@ -396,10 +396,14 @@ func KillProcessHandler(c *gin.Context) {
 // ============================================================================
 
 var defaultApps = []db.App{
+	// System Tools (not Docker)
+	{Name: "Node.js + PM2", Slug: "nodejs", Description: "JavaScript runtime with PM2 process manager", Icon: "💚", DockerImage: "system", Port: 0},
+	// Docker Apps - Databases
 	{Name: "MySQL", Slug: "mysql", Description: "Popular relational database", Icon: "🗄️", DockerImage: "mysql:8.0", Port: 3306},
 	{Name: "Redis", Slug: "redis", Description: "In-memory data store", Icon: "🔴", DockerImage: "redis:alpine", Port: 6379},
 	{Name: "PostgreSQL", Slug: "postgresql", Description: "Advanced open-source database", Icon: "🐘", DockerImage: "postgres:15", Port: 5432},
 	{Name: "MongoDB", Slug: "mongodb", Description: "NoSQL document database", Icon: "🍃", DockerImage: "mongo:6", Port: 27017},
+	// Docker Apps - Web
 	{Name: "Nextcloud", Slug: "nextcloud", Description: "Self-hosted cloud storage", Icon: "☁️", DockerImage: "nextcloud:latest", Port: 8080},
 	{Name: "WordPress", Slug: "wordpress", Description: "Popular CMS", Icon: "📝", DockerImage: "wordpress:latest", Port: 8081},
 	{Name: "Ghost", Slug: "ghost", Description: "Publishing platform", Icon: "👻", DockerImage: "ghost:latest", Port: 8082},
@@ -445,9 +449,16 @@ func InstallAppHandler(c *gin.Context) {
 		return
 	}
 
-	// Build docker command based on app type
+	// Build install command based on app type
 	var cmd string
+	var isSystemApp bool
+
 	switch app.Slug {
+	// System Tools (not Docker)
+	case "nodejs":
+		isSystemApp = true
+		cmd = `curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && apt-get install -y nodejs && npm install -g pm2 && pm2 startup && node -v && pm2 -v`
+	// Docker Apps - Databases
 	case "mysql":
 		cmd = "docker run -d --name panda-mysql --restart unless-stopped -e MYSQL_ROOT_PASSWORD=panda123 -p 3306:3306 -v panda-mysql-data:/var/lib/mysql mysql:8.0"
 	case "redis":
@@ -459,9 +470,12 @@ func InstallAppHandler(c *gin.Context) {
 	case "portainer":
 		cmd = "docker run -d --name panda-portainer --restart unless-stopped -p 9000:9000 -v /var/run/docker.sock:/var/run/docker.sock -v panda-portainer-data:/data portainer/portainer-ce:latest"
 	default:
-		// Generic apps - port mapping to container port 80
+		// Generic docker apps - port mapping to container port 80
 		cmd = "docker run -d --name panda-" + app.Slug + " --restart unless-stopped -p " + strconv.Itoa(app.Port) + ":80 " + app.DockerImage
 	}
+
+	// Ignore unused variable for now
+	_ = isSystemApp
 
 	out, err := system.Execute(cmd)
 	if err != nil {
