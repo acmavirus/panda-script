@@ -26,6 +26,7 @@ type Website struct {
 	PHPVer     string `json:"php_version"`
 	Status     string `json:"status"`
 	StatusCode int    `json:"status_code"`
+	HasDB      bool   `json:"has_db"`
 }
 
 func ListWebsites() ([]Website, error) {
@@ -68,6 +69,14 @@ func ListWebsites() ([]Website, error) {
 			}
 		}
 
+		// Check for DB
+		hasDB := false
+		dbName := strings.ReplaceAll(domain, ".", "_")
+		dbName = strings.ReplaceAll(dbName, "-", "_")
+		if checkMySQLDatabaseExists(dbName) {
+			hasDB = true
+		}
+
 		sites = append(sites, Website{
 			Domain:    domain,
 			Port:      80,
@@ -75,6 +84,7 @@ func ListWebsites() ([]Website, error) {
 			SSL:       hasSSL,
 			SSLExpiry: sslExpiry,
 			Status:    status,
+			HasDB:     hasDB,
 		})
 	}
 
@@ -309,4 +319,21 @@ func DeleteWebsite(domain string) error {
 
 	// NOTE: Web root and SSL certs are NOT deleted for safety
 	return nil
+}
+func checkMySQLDatabaseExists(name string) bool {
+	// We need to use mysql command
+	cmd := fmt.Sprintf("mysql -uroot -e \"SHOW DATABASES LIKE '%s';\" -N", name)
+	out, err := system.Execute(cmd)
+	if err == nil && strings.TrimSpace(out) == name {
+		return true
+	}
+
+	// Try docker if native failed
+	cmd = fmt.Sprintf("docker exec panda-mysql mysql -uroot -proot -e \"SHOW DATABASES LIKE '%s';\" -N", name)
+	out, err = system.Execute(cmd)
+	if err == nil && strings.TrimSpace(out) == name {
+		return true
+	}
+
+	return false
 }

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 	"runtime"
 	"strconv"
@@ -412,6 +413,7 @@ var defaultApps = []db.App{
 	{Name: "n8n", Slug: "n8n", Description: "Workflow automation", Icon: "🔄", DockerImage: "n8nio/n8n:latest", Port: 5678},
 	{Name: "Portainer", Slug: "portainer", Description: "Docker management", Icon: "🐳", DockerImage: "portainer/portainer-ce:latest", Port: 9000},
 	{Name: "Uptime Kuma", Slug: "uptime-kuma", Description: "Uptime monitoring", Icon: "📊", DockerImage: "louislam/uptime-kuma:latest", Port: 3001},
+	{Name: "phpMyAdmin", Slug: "phpmyadmin", Description: "MySQL web interface", Icon: "🗃️", DockerImage: "phpmyadmin/phpmyadmin", Port: 8081},
 }
 
 func ListAppsHandler(c *gin.Context) {
@@ -477,6 +479,25 @@ func InstallAppHandler(c *gin.Context) {
 		cmd = "docker run -d --name panda-mongodb --restart unless-stopped -p 27017:27017 -v panda-mongo-data:/data/db mongo:6"
 	case "portainer":
 		cmd = "docker run -d --name panda-portainer --restart unless-stopped -p 9000:9000 -v /var/run/docker.sock:/var/run/docker.sock -v panda-portainer-data:/data portainer/portainer-ce:latest"
+	case "phpmyadmin":
+		// Check if mysql container exists
+		mysqlHost := "172.17.0.1" // Docker host (native mysql)
+		dockerCheck, _ := system.Execute("docker ps --filter name=panda-mysql --format '{{.Names}}'")
+		if strings.TrimSpace(dockerCheck) == "panda-mysql" {
+			mysqlHost = "panda-mysql"
+		} else {
+			dockerCheck, _ = system.Execute("docker ps --filter name=mysql --format '{{.Names}}'")
+			if strings.TrimSpace(dockerCheck) == "mysql" {
+				mysqlHost = "mysql"
+			}
+		}
+
+		linkArg := ""
+		if mysqlHost != "172.17.0.1" {
+			linkArg = "--link " + mysqlHost + ":db"
+		}
+
+		cmd = fmt.Sprintf("docker run -d --name panda-phpmyadmin --restart unless-stopped %s -e PMA_HOST=%s -p 8081:80 phpmyadmin/phpmyadmin", linkArg, mysqlHost)
 	default:
 		// Generic docker apps - port mapping to container port 80
 		cmd = "docker run -d --name panda-" + app.Slug + " --restart unless-stopped -p " + strconv.Itoa(app.Port) + ":80 " + app.DockerImage

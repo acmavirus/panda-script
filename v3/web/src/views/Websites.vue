@@ -92,6 +92,11 @@ const createWebsiteDB = async (domain) => {
   }
 }
 
+const openPMA = (domain) => {
+  const pmaUrl = `http://${window.location.hostname}:8081`
+  window.open(pmaUrl, '_blank')
+}
+
 const deleteWebsite = async (domain) => {
   if (!confirm(`Delete ${domain}?\n\nNote: Web files will NOT be deleted.`)) return
   
@@ -238,11 +243,20 @@ onMounted(fetchWebsites)
                   <FolderOpen :size="14" />
                 </router-link>
                 <button 
+                  v-if="!site.has_db"
                   @click="createWebsiteDB(site.domain)"
                   class="panda-btn panda-btn-ghost p-2"
                   data-tooltip="Create DB"
                 >
                   <Database :size="14" style="color: var(--color-info);" />
+                </button>
+                <button 
+                  v-else
+                  @click="openPMA(site.domain)"
+                  class="panda-btn panda-btn-ghost p-2"
+                  data-tooltip="Manage DB"
+                >
+                  <Database :size="14" style="color: #22c55e;" />
                 </button>
                 <button 
                   v-if="!site.ssl"
