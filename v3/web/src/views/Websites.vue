@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
-import { Plus, Trash2, Globe, ExternalLink, Lock, FolderOpen, Settings, MoreHorizontal } from 'lucide-vue-next'
+import { Plus, Trash2, Globe, ExternalLink, Lock, Shield, FolderOpen, RefreshCw } from 'lucide-vue-next'
 import Skeleton from '../components/Skeleton.vue'
 
 const websites = ref([])
@@ -14,7 +14,9 @@ const newWebsite = ref({
 })
 const loading = ref(true)
 const creating = ref(false)
+const creatingSSL = ref('')
 const error = ref('')
+const success = ref('')
 
 const fetchWebsites = async () => {
   try {
@@ -40,6 +42,7 @@ const createWebsite = async () => {
     showCreateModal.value = false
     
     await axios.post('/api/websites', newWebsite.value)
+    success.value = `Website ${newWebsite.value.domain} created successfully!`
     newWebsite.value = { domain: '', port: 80, root: '/home', ssl: false }
     await fetchWebsites()
   } catch (err) {
@@ -51,8 +54,23 @@ const createWebsite = async () => {
   }
 }
 
+const createSSL = async (domain) => {
+  if (!confirm(`Create SSL certificate for ${domain}?\n\nThis will use Let's Encrypt to generate a free SSL certificate.`)) return
+  
+  creatingSSL.value = domain
+  try {
+    await axios.post(`/api/websites/${domain}/ssl`)
+    success.value = `SSL certificate created for ${domain}!`
+    await fetchWebsites()
+  } catch (err) {
+    error.value = err.response?.data?.error || 'Failed to create SSL certificate'
+  } finally {
+    creatingSSL.value = ''
+  }
+}
+
 const deleteWebsite = async (domain) => {
-  if (!confirm(`Delete ${domain}?`)) return
+  if (!confirm(`Delete ${domain}?\n\nNote: Web files will NOT be deleted.`)) return
   
   // Optimistic UI - mark as deleting
   const site = websites.value.find(w => w.domain === domain)
@@ -76,12 +94,27 @@ onMounted(fetchWebsites)
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div>
         <h1 class="text-2xl font-semibold" style="color: var(--text-primary);">Sites</h1>
-        <p class="text-sm mt-1" style="color: var(--text-muted);">Manage your Nginx virtual hosts</p>
+        <p class="text-sm mt-1" style="color: var(--text-muted);">Manage your Nginx virtual hosts with SSL</p>
       </div>
-      <button @click="showCreateModal = true" class="panda-btn panda-btn-primary">
-        <Plus :size="16" />
-        <span>Add Site</span>
-      </button>
+      <div class="flex gap-2">
+        <button @click="fetchWebsites" class="panda-btn panda-btn-secondary">
+          <RefreshCw :size="16" :class="{ 'animate-spin': loading }" />
+        </button>
+        <button @click="showCreateModal = true" class="panda-btn panda-btn-primary">
+          <Plus :size="16" />
+          <span>Add Site</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Success Alert -->
+    <div 
+      v-if="success" 
+      class="flex items-center justify-between px-4 py-3 rounded-lg text-sm"
+      style="background: var(--color-success-subtle); color: var(--color-success);"
+    >
+      <span>{{ success }}</span>
+      <button @click="success = ''" class="hover:opacity-70">&times;</button>
     </div>
 
     <!-- Error Alert -->
@@ -102,7 +135,7 @@ onMounted(fetchWebsites)
             <th>Domain</th>
             <th class="hidden md:table-cell">Root</th>
             <th class="hidden sm:table-cell">SSL</th>
-            <th class="w-24"></th>
+            <th class="w-32"></th>
           </tr>
         </thead>
         <tbody>
@@ -115,13 +148,16 @@ onMounted(fetchWebsites)
               <div class="flex items-center gap-3">
                 <div 
                   class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-                  style="background: var(--color-primary-subtle);"
+                  :style="site.ssl ? 'background: rgba(34, 197, 94, 0.1);' : 'background: var(--color-primary-subtle);'"
                 >
-                  <Globe :size="16" style="color: var(--color-primary);" />
+                  <Lock v-if="site.ssl" :size="16" style="color: #22c55e;" />
+                  <Globe v-else :size="16" style="color: var(--color-primary);" />
                 </div>
                 <div>
                   <div class="font-medium" style="color: var(--text-primary);">{{ site.domain }}</div>
-                  <div class="text-xs" style="color: var(--text-muted);">Port {{ site.port }}</div>
+                  <div class="text-xs" style="color: var(--text-muted);">
+                    {{ site.ssl ? 'HTTPS' : 'HTTP' }} • Port {{ site.port }}
+                  </div>
                 </div>
               </div>
             </td>
@@ -131,19 +167,28 @@ onMounted(fetchWebsites)
               </code>
             </td>
             <td class="hidden sm:table-cell">
-              <span 
-                v-if="site.ssl"
-                class="panda-badge panda-badge-success"
+              <div v-if="site.ssl" class="flex flex-col">
+                <span class="panda-badge panda-badge-success">
+                  <Lock :size="10" class="mr-1" /> Secured
+                </span>
+                <span v-if="site.ssl_expiry" class="text-[10px] mt-1" style="color: var(--text-muted);">
+                  {{ site.ssl_expiry }}
+                </span>
+              </div>
+              <button 
+                v-else
+                @click="createSSL(site.domain)"
+                :disabled="creatingSSL === site.domain"
+                class="panda-btn panda-btn-ghost text-xs px-3 py-1.5 gap-1"
+                style="color: var(--color-warning);"
               >
-                <Lock :size="10" class="mr-1" /> Secured
-              </span>
-              <span v-else class="panda-badge" style="background: var(--bg-surface); color: var(--text-muted);">
-                No SSL
-              </span>
+                <Shield :size="12" />
+                {{ creatingSSL === site.domain ? 'Creating...' : 'Add SSL' }}
+              </button>
             </td>
             <td>
-              <!-- Contextual Actions - Hidden until hover -->
-              <div class="contextual-actions flex items-center gap-1 justify-end">
+              <!-- Actions - Always Visible -->
+              <div class="flex items-center gap-1 justify-end">
                 <a 
                   :href="(site.ssl ? 'https://' : 'http://') + site.domain" 
                   target="_blank"
@@ -152,8 +197,21 @@ onMounted(fetchWebsites)
                 >
                   <ExternalLink :size="14" />
                 </a>
-                <button class="panda-btn panda-btn-ghost p-2" data-tooltip="Files">
+                <router-link 
+                  :to="'/panda/files?path=/home/' + site.domain"
+                  class="panda-btn panda-btn-ghost p-2"
+                  data-tooltip="Files"
+                >
                   <FolderOpen :size="14" />
+                </router-link>
+                <button 
+                  v-if="!site.ssl"
+                  @click="createSSL(site.domain)"
+                  :disabled="creatingSSL === site.domain"
+                  class="panda-btn panda-btn-ghost p-2 sm:hidden"
+                  data-tooltip="Add SSL"
+                >
+                  <Shield :size="14" style="color: var(--color-warning);" />
                 </button>
                 <button 
                   @click="deleteWebsite(site.domain)"
@@ -189,7 +247,7 @@ onMounted(fetchWebsites)
             <th>Domain</th>
             <th class="hidden md:table-cell">Root</th>
             <th class="hidden sm:table-cell">SSL</th>
-            <th class="w-24"></th>
+            <th class="w-32"></th>
           </tr>
         </thead>
         <tbody>
@@ -243,21 +301,25 @@ onMounted(fetchWebsites)
                     type="text" 
                     required
                     class="panda-input"
+                    :placeholder="'/home/' + (newWebsite.domain || 'example.com')"
                   >
                 </div>
               </div>
 
-              <div class="flex items-center gap-3 py-2">
+              <div class="flex items-center gap-3 p-3 rounded-lg" style="background: var(--bg-surface);">
                 <label class="relative inline-flex items-center cursor-pointer">
                   <input type="checkbox" v-model="newWebsite.ssl" class="sr-only peer">
                   <div class="w-10 h-5 rounded-full peer peer-checked:after:translate-x-5 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:rounded-full after:h-4 after:w-4 after:transition-all" 
-                       style="background: var(--bg-surface);"
-                       :style="newWebsite.ssl ? 'background: var(--color-primary);' : ''">
+                       style="background: var(--bg-active);"
+                       :style="newWebsite.ssl ? 'background: var(--color-success);' : ''">
                     <div class="absolute top-[2px] left-[2px] w-4 h-4 rounded-full transition-transform" 
                          :style="{ background: 'white', transform: newWebsite.ssl ? 'translateX(20px)' : 'translateX(0)' }"></div>
                   </div>
                 </label>
-                <span class="text-sm" style="color: var(--text-secondary);">Enable SSL (Let's Encrypt)</span>
+                <div>
+                  <span class="text-sm font-medium" style="color: var(--text-primary);">Enable SSL</span>
+                  <p class="text-xs" style="color: var(--text-muted);">Automatically generate Let's Encrypt certificate</p>
+                </div>
               </div>
             </form>
             
@@ -266,7 +328,7 @@ onMounted(fetchWebsites)
               <button @click="showCreateModal = false" class="flex-1 panda-btn panda-btn-secondary">
                 Cancel
               </button>
-              <button @click="createWebsite" :disabled="creating" class="flex-1 panda-btn panda-btn-primary">
+              <button @click="createWebsite" :disabled="creating || !newWebsite.domain" class="flex-1 panda-btn panda-btn-primary">
                 {{ creating ? 'Creating...' : 'Create Site' }}
               </button>
             </div>

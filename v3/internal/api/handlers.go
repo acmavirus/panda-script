@@ -397,6 +397,15 @@ func DeleteWebsiteHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Website deleted"})
 }
 
+func CreateWebsiteSSLHandler(c *gin.Context) {
+	domain := c.Param("domain")
+	if err := website.CreateSSL(domain); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "SSL certificate created successfully for " + domain})
+}
+
 // Database Handlers
 
 func ListDatabasesHandler(c *gin.Context) {

@@ -12,12 +12,13 @@ import (
 )
 
 type Website struct {
-	Domain string `json:"domain"`
-	Port   int    `json:"port"`
-	Root   string `json:"root"`
-	SSL    bool   `json:"ssl"`
-	PHPVer string `json:"php_version"`
-	Status string `json:"status"`
+	Domain    string `json:"domain"`
+	Port      int    `json:"port"`
+	Root      string `json:"root"`
+	SSL       bool   `json:"ssl"`
+	SSLExpiry string `json:"ssl_expiry,omitempty"`
+	PHPVer    string `json:"php_version"`
+	Status    string `json:"status"`
 }
 
 func ListWebsites() ([]Website, error) {
@@ -47,12 +48,26 @@ func ListWebsites() ([]Website, error) {
 			status = "no_directory"
 		}
 
+		// Check SSL status
+		hasSSL := false
+		sslExpiry := ""
+		if runtime.GOOS != "windows" {
+			certPath := fmt.Sprintf("/etc/letsencrypt/live/%s/fullchain.pem", domain)
+			if _, err := os.Stat(certPath); err == nil {
+				hasSSL = true
+				// Get expiry date
+				out, _ := system.Execute(fmt.Sprintf("openssl x509 -enddate -noout -in %s 2>/dev/null | cut -d= -f2", certPath))
+				sslExpiry = strings.TrimSpace(out)
+			}
+		}
+
 		sites = append(sites, Website{
-			Domain: domain,
-			Port:   80,
-			Root:   root,
-			SSL:    false,
-			Status: status,
+			Domain:    domain,
+			Port:      80,
+			Root:      root,
+			SSL:       hasSSL,
+			SSLExpiry: sslExpiry,
+			Status:    status,
 		})
 	}
 	return sites, nil
@@ -171,6 +186,53 @@ func CreateWebsite(site Website) error {
 		return fmt.Errorf("failed to reload nginx: %v", err)
 	}
 
+	// 7. Create SSL if requested
+	if site.SSL {
+		if err := CreateSSL(site.Domain); err != nil {
+			// SSL creation failed but website is created
+			// Log error but don't fail the entire operation
+			fmt.Printf("SSL creation failed for %s: %v\n", site.Domain, err)
+		}
+	}
+
+	return nil
+}
+
+// CreateSSL creates/renews SSL certificate for a domain using Let's Encrypt
+func CreateSSL(domain string) error {
+	if runtime.GOOS == "windows" {
+		return fmt.Errorf("SSL creation requires Linux")
+	}
+
+	// Check if certbot is installed
+	if _, err := system.Execute("which certbot"); err != nil {
+		// Install certbot
+		if _, err := system.Execute("apt-get update && apt-get install -y certbot python3-certbot-nginx"); err != nil {
+			return fmt.Errorf("failed to install certbot: %v", err)
+		}
+	}
+
+	// Run certbot
+	cmd := fmt.Sprintf("certbot --nginx -d %s -d www.%s --non-interactive --agree-tos --email admin@%s --redirect", domain, domain, domain)
+	out, err := system.Execute(cmd)
+	if err != nil {
+		return fmt.Errorf("certbot failed: %s - %v", out, err)
+	}
+
+	return nil
+}
+
+// RenewSSL renews all SSL certificates
+func RenewSSL() error {
+	if runtime.GOOS == "windows" {
+		return fmt.Errorf("SSL renewal requires Linux")
+	}
+
+	out, err := system.Execute("certbot renew --quiet")
+	if err != nil {
+		return fmt.Errorf("certbot renew failed: %s - %v", out, err)
+	}
+
 	return nil
 }
 
@@ -190,6 +252,6 @@ func DeleteWebsite(domain string) error {
 	// Reload nginx
 	system.Execute("systemctl reload nginx")
 
-	// NOTE: Web root is NOT deleted for safety
+	// NOTE: Web root and SSL certs are NOT deleted for safety
 	return nil
 }
