@@ -27,12 +27,21 @@ install_php_ext() {
                 echo "extension=swoole.so" > /etc/php/$php_ver/fpm/conf.d/20-swoole.ini
             }
             ;;
+        redis)
+            apt-get install -y php$php_ver-redis
+            ;;
+        memcached)
+            apt-get install -y php$php_ver-memcached
+            ;;
+        apcu)
+            apt-get install -y php$php_ver-apcu
+            ;;
         ioncube)
             # Complex install logic for ioncube usually manual, providing helper
             log_warning "IonCube requires manual loader placement. Downloading helper..."
             # (Simplified for now)
             ;;
-        exif|intl|mbstring|gd|xml|zip|curl|bcmath)
+        exif|intl|mbstring|gd|xml|zip|curl|bcmath|soap|opcache|mysql|pdo|sqlite3|fileinfo|sodium|ldap)
             apt-get install -y php$php_ver-$ext_name
             ;;
         *)
@@ -58,6 +67,9 @@ php_ext_menu() {
         echo "  4. 🖼️  GD (Image manipulation)"
         echo "  5. 📝 MBString (Multi-byte string)"
         echo "  6. 📦 Zip/XML/BCMath (Common core)"
+        echo "  7. 🔴 Redis (Cache & Session)"
+        echo "  8. 🟢 Memcached (Distributed cache)"
+        echo "  9. ⚡ OPcache (Performance boost)"
         echo "  0. Back"
         echo ""
         read -p "Choice: " choice
@@ -74,6 +86,9 @@ php_ext_menu() {
                 install_php_ext "bcmath" "$php_ver"
                 pause
                 ;;
+            7) install_php_ext "redis" "$php_ver"; pause ;;
+            8) install_php_ext "memcached" "$php_ver"; pause ;;
+            9) install_php_ext "opcache" "$php_ver"; pause ;;
             0) return ;;
         esac
     done

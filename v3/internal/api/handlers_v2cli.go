@@ -500,8 +500,19 @@ type PHPExtension struct {
 }
 
 var commonExtensions = []string{
-	"imagick", "gd", "intl", "zip", "bcmath", "soap", "xmlrpc",
-	"opcache", "redis", "memcached", "apcu", "xdebug", "ioncube-loader",
+	// Image Processing
+	"imagick", "gd", "exif",
+	// Cache & Session
+	"redis", "memcached", "apcu", "opcache",
+	// Database
+	"mysql", "mysqli", "pdo", "pdo-mysql", "sqlite3",
+	// Common Extensions
+	"curl", "mbstring", "xml", "zip", "intl", "bcmath",
+	"soap", "xmlrpc", "json", "fileinfo", "sodium",
+	// Development
+	"xdebug",
+	// Enterprise
+	"ldap", "ioncube-loader",
 }
 
 func ListPHPExtensionsHandler(c *gin.Context) {
