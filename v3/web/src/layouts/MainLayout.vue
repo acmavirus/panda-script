@@ -43,6 +43,7 @@ const menuGroups = [
       { icon: Globe, label: 'Websites', path: '/websites' },
       { icon: Database, label: 'Databases', path: '/databases' },
       { icon: Container, label: 'Docker', path: '/docker' },
+      { icon: Rocket, label: 'PM2 Manager', path: '/pm2' },
     ]
   },
   {

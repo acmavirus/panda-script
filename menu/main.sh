@@ -256,6 +256,7 @@ services_menu() {
         echo -e "${CYAN}║${NC}  4. 🐋 Docker Manager                                       ${CYAN}║${NC}"
         echo -e "${CYAN}║${NC}  5. 📦 Redis/Memcached                                      ${CYAN}║${NC}"
         echo -e "${CYAN}║${NC}  6. ☁️  Cloudflare (Cache Purge)                             ${CYAN}║${NC}"
+        echo -e "${CYAN}║${NC}  7. 🚀 PM2 Manager                                          ${CYAN}║${NC}"
         echo -e "${CYAN}║${NC}  0. ← Back                                                  ${CYAN}║${NC}"
         echo -e "${CYAN}╚══════════════════════════════════════════════════════════════╝${NC}"
         echo ""
@@ -268,6 +269,7 @@ services_menu() {
             4) source "$PANDA_DIR/menu/docker.sh"; docker_menu ;;
             5) install_cache_menu ;;
             6) source "$PANDA_DIR/modules/cloud/cloudflare.sh"; cf_purge_cache ;;
+            7) source "$PANDA_DIR/modules/website/nodejs.sh"; manage_pm2 ;;
             0) return ;;
             *) log_error "Invalid option"; sleep 1 ;;
         esac

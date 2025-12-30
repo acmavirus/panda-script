@@ -282,6 +282,14 @@ func RegisterRoutes(r *gin.RouterGroup) {
 			deployGroup.POST("/:name/auto-deploy", EnableAutoDeployHandler)
 		}
 
+		// PM2
+		pm2Group := protected.Group("/pm2")
+		{
+			pm2Group.GET("/", ListPM2ProcessesHandler)
+			pm2Group.POST("/:name/:action", PM2ActionHandler)
+			pm2Group.GET("/:name/logs", GetPM2LogsHandler)
+		}
+
 	}
 
 	// Public routes

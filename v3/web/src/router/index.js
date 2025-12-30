@@ -112,6 +112,11 @@ const router = createRouter({
           name: 'tools',
           component: Tools
         },
+        {
+          path: 'pm2',
+          name: 'pm2',
+          component: () => import('../views/PM2.vue')
+        },
       ]
     },
     {
