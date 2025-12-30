@@ -40,6 +40,10 @@ func RegisterRoutes(r *gin.RouterGroup) {
 			fmGroup.POST("/rename", RenameFileHandler)
 			fmGroup.POST("/upload", UploadFileHandler)
 			fmGroup.POST("/download", RemoteDownloadHandler)
+			fmGroup.POST("/chmod", ChmodHandler)
+			fmGroup.POST("/copy", CopyFilesHandler)
+			fmGroup.POST("/move", MoveFilesHandler)
+			fmGroup.GET("/archive/list", ListArchiveHandler)
 		}
 
 		// Tasks

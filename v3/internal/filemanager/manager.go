@@ -5,7 +5,9 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -66,6 +68,34 @@ func CreateDirectory(path string) error {
 	return os.MkdirAll(path, 0755)
 }
 
+func Compress(srcPath, destPath, format string) error {
+	var cmd *exec.Cmd
+	switch format {
+	case "zip":
+		cmd = exec.Command("zip", "-r", destPath, ".")
+		cmd.Dir = srcPath
+	case "tar.gz":
+		cmd = exec.Command("tar", "-czf", destPath, "-C", srcPath, ".")
+	default:
+		return fmt.Errorf("unsupported format: %s", format)
+	}
+	return cmd.Run()
+}
+
+func Extract(archivePath, destPath string) error {
+	var cmd *exec.Cmd
+	if strings.HasSuffix(archivePath, ".zip") {
+		cmd = exec.Command("unzip", "-o", archivePath, "-d", destPath)
+	} else if strings.HasSuffix(archivePath, ".tar.gz") || strings.HasSuffix(archivePath, ".tgz") {
+		cmd = exec.Command("tar", "-xzf", archivePath, "-C", destPath)
+	} else if strings.HasSuffix(archivePath, ".tar.bz2") {
+		cmd = exec.Command("tar", "-xjf", archivePath, "-C", destPath)
+	} else {
+		return fmt.Errorf("unsupported archive format")
+	}
+	return cmd.Run()
+}
+
 func DownloadRemoteFile(url, destPath string) error {
 	resp, err := http.Get(url)
 	if err != nil {
@@ -85,4 +115,44 @@ func DownloadRemoteFile(url, destPath string) error {
 
 	_, err = io.Copy(out, resp.Body)
 	return err
+}
+
+func Chmod(path string, mode int) error {
+	return os.Chmod(path, os.FileMode(mode))
+}
+
+func Copy(src, dst string) error {
+	cmd := exec.Command("cp", "-r", src, dst)
+	return cmd.Run()
+}
+
+func Move(src, dst string) error {
+	cmd := exec.Command("mv", src, dst)
+	return cmd.Run()
+}
+
+func ListArchive(archivePath string) ([]string, error) {
+	var cmd *exec.Cmd
+	if strings.HasSuffix(archivePath, ".zip") {
+		cmd = exec.Command("unzip", "-l", archivePath)
+	} else if strings.HasSuffix(archivePath, ".tar.gz") || strings.HasSuffix(archivePath, ".tgz") {
+		cmd = exec.Command("tar", "-tf", archivePath)
+	} else {
+		return nil, fmt.Errorf("unsupported archive format")
+	}
+
+	out, err := cmd.Output()
+	if err != nil {
+		return nil, err
+	}
+
+	lines := strings.Split(string(out), "\n")
+	var results []string
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line != "" {
+			results = append(results, line)
+		}
+	}
+	return results, nil
 }
