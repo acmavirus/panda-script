@@ -294,6 +294,15 @@ func RegisterRoutes(r *gin.RouterGroup) {
 			pm2Group.GET("/:name/logs", GetPM2LogsHandler)
 		}
 
+		// Cron
+		cronGroup := protected.Group("/cron")
+		{
+			cronGroup.GET("/", ListCronsHandler)
+			cronGroup.POST("/", CreateCronHandler)
+			cronGroup.PUT("/:id", UpdateCronHandler)
+			cronGroup.DELETE("/:id", DeleteCronHandler)
+		}
+
 	}
 
 	// Public routes

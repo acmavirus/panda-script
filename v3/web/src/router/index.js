@@ -117,6 +117,16 @@ const router = createRouter({
           name: 'pm2',
           component: () => import('../views/PM2.vue')
         },
+        {
+          path: 'cron',
+          name: 'cron',
+          component: () => import('../views/Cron.vue')
+        },
+        {
+          path: 'logs',
+          name: 'logs',
+          component: () => import('../views/Logs.vue')
+        },
       ]
     },
     {

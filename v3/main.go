@@ -82,6 +82,11 @@ func startWebServer() {
 
 	r := gin.Default()
 
+	// Sync Cron Jobs from DB to System
+	if err := api.SyncCronJobs(); err != nil {
+		fmt.Printf("Warning: Failed to sync cron jobs: %v\n", err)
+	}
+
 	// Start Background Status Checker
 	website.StartStatusChecker()
 

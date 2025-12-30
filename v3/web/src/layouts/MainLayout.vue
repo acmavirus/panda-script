@@ -5,7 +5,7 @@ import {
   Bell, Search, User, LogOut, Server, Code, Lock, Shield, 
   Archive, Cpu, Users, Store, Stethoscope, Wrench, Sun, Moon, Menu, X, 
   Package, Rocket, ChevronDown, ChevronRight, FolderOpen, Clock,
-  Activity, Container
+  Activity, Container, FileText
 } from 'lucide-vue-next'
 import { useAuthStore } from '../stores/auth'
 import { useThemeStore } from '../stores/theme'
@@ -73,6 +73,7 @@ const menuGroups = [
     items: [
       { icon: Shield, label: 'Security', path: '/security' },
       { icon: Activity, label: 'System Health', path: '/health' },
+      { icon: FileText, label: 'Logs', path: '/logs' },
       { icon: Terminal, label: 'Terminal', path: '/terminal' },
       { icon: Settings, label: 'Settings', path: '/settings' },
     ]

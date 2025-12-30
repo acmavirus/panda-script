@@ -92,6 +92,17 @@ type App struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 }
 
+type Cron struct {
+	ID          uint      `gorm:"primaryKey" json:"id"`
+	Name        string    `json:"name"`
+	Expression  string    `json:"expression"`
+	Command     string    `json:"command"`
+	Description string    `json:"description"`
+	Enabled     bool      `json:"enabled"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
 func Init() {
 	var err error
 
@@ -107,7 +118,7 @@ func Init() {
 	}
 
 	// Migrate the schema
-	err = DB.AutoMigrate(&User{}, &Website{}, &Setting{}, &LoginToken{}, &IPWhitelist{}, &Notification{}, &App{})
+	err = DB.AutoMigrate(&User{}, &Website{}, &Setting{}, &LoginToken{}, &IPWhitelist{}, &Notification{}, &App{}, &Cron{})
 	if err != nil {
 		log.Fatal("Failed to migrate database:", err)
 	}
