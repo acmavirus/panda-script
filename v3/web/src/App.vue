@@ -1,6 +1,7 @@
 <script setup>
 import { onMounted } from 'vue'
 import { useThemeStore } from './stores/theme'
+import ToastContainer from './components/ToastContainer.vue'
 
 const themeStore = useThemeStore()
 
@@ -20,7 +21,10 @@ onMounted(() => {
 </script>
 
 <template>
-  <router-view></router-view>
+  <div :class="{ 'dark': themeStore.isDark }">
+    <router-view></router-view>
+    <ToastContainer />
+  </div>
 </template>
 
 <style>

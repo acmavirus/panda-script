@@ -2,6 +2,8 @@
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
 import { Server, Play, Square, RotateCw, FileText, Settings, RefreshCw, Save, X, Globe } from 'lucide-vue-next'
+import { useToastStore } from '../stores/toast'
+const toast = useToastStore()
 import Skeleton from '../components/Skeleton.vue'
 
 const status = ref('unknown')
@@ -32,7 +34,7 @@ const action = async (act) => {
     await axios.post(`/api/nginx/${act}`)
     fetchStatus()
   } catch (err) {
-    alert('Action failed: ' + (err.response?.data?.error || err.message))
+    toast.error('Action failed: ' + (err.response?.data?.error || err.message))
   }
 }
 
@@ -62,9 +64,9 @@ const saveConfig = async () => {
       await axios.post('/api/nginx/config', { content: config.value })
     }
     showConfigModal.value = false
-    alert('Configuration saved successfully!')
+    toast.success('Configuration saved successfully!')
   } catch (err) {
-    alert('Failed to save: ' + (err.response?.data?.error || err.message))
+    toast.error('Failed to save: ' + (err.response?.data?.error || err.message))
   } finally {
     saving.value = false
   }

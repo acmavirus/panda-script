@@ -2,6 +2,8 @@
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
 import { Shield, Lock, Unlock, Plus, Trash2, RotateCw } from 'lucide-vue-next'
+import { useToastStore } from '../stores/toast'
+const toast = useToastStore()
 
 const firewall = ref({ enabled: false, rules: [] })
 const sshPort = ref(22)
@@ -32,7 +34,7 @@ const toggleFirewall = async () => {
     await axios.post(`/api/security/firewall/${action}`)
     fetchFirewall()
   } catch (err) {
-    alert('Failed: ' + (err.response?.data?.error || err.message))
+    toast.error('Failed: ' + (err.response?.data?.error || err.message))
   }
 }
 
@@ -45,7 +47,7 @@ const whitelistIP = async () => {
     showWhitelist.value = false
     fetchFirewall()
   } catch (err) {
-    alert('Failed: ' + (err.response?.data?.error || err.message))
+    toast.error('Failed: ' + (err.response?.data?.error || err.message))
   }
 }
 
@@ -55,7 +57,7 @@ const deleteRule = async (id) => {
     await axios.delete(`/api/security/rule/${id}`)
     fetchFirewall()
   } catch (err) {
-    alert('Failed: ' + (err.response?.data?.error || err.message))
+    toast.error('Failed: ' + (err.response?.data?.error || err.message))
   }
 }
 
@@ -65,9 +67,9 @@ const changeSSHPort = async () => {
   try {
     await axios.put('/api/security/ssh-port', { port: parseInt(port) })
     sshPort.value = parseInt(port)
-    alert('SSH port changed to ' + port)
+    toast.success('SSH port changed to ' + port)
   } catch (err) {
-    alert('Failed: ' + (err.response?.data?.error || err.message))
+    toast.error('Failed: ' + (err.response?.data?.error || err.message))
   }
 }
 

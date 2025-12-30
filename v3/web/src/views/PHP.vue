@@ -2,6 +2,8 @@
 import { ref, onMounted, watch } from 'vue'
 import axios from 'axios'
 import { Code, Download, Settings, RotateCw, Check, Package, Puzzle } from 'lucide-vue-next'
+import { useToastStore } from '../stores/toast'
+const toast = useToastStore()
 
 const versions = ref([])
 const loading = ref(false)
@@ -59,10 +61,10 @@ const installExtension = async (extName) => {
       version: selectedVersionForExt.value,
       extension: extName
     })
-    alert(`${extName} installed successfully for PHP ${selectedVersionForExt.value}!`)
+    toast.success(`${extName} installed successfully for PHP ${selectedVersionForExt.value}!`)
     fetchExtensions()
   } catch (err) {
-    alert('Failed to install extension: ' + (err.response?.data?.error || err.message))
+    toast.error('Failed to install extension: ' + (err.response?.data?.error || err.message))
   } finally {
     installingExt.value = ''
   }
@@ -73,9 +75,9 @@ const installVersion = async () => {
   try {
     await axios.post('/api/php/install', { version: newVersion.value })
     fetchVersions()
-    alert('PHP ' + newVersion.value + ' installed successfully!')
+    toast.success('PHP ' + newVersion.value + ' installed successfully!')
   } catch (err) {
-    alert('Failed to install PHP: ' + (err.response?.data?.error || err.message))
+    toast.error('Failed to install PHP: ' + (err.response?.data?.error || err.message))
   } finally {
     installing.value = false
   }
@@ -86,7 +88,7 @@ const switchVersion = async (version) => {
     await axios.post('/api/php/switch', { version })
     fetchVersions()
   } catch (err) {
-    alert('Failed to switch PHP: ' + (err.response?.data?.error || err.message))
+    toast.error('Failed to switch PHP: ' + (err.response?.data?.error || err.message))
   }
 }
 
@@ -95,7 +97,7 @@ const restartFPM = async (version) => {
     await axios.post(`/api/php/restart/${version}`)
     fetchVersions()
   } catch (err) {
-    alert('Failed to restart PHP-FPM: ' + (err.response?.data?.error || err.message))
+    toast.error('Failed to restart PHP-FPM: ' + (err.response?.data?.error || err.message))
   }
 }
 

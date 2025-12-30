@@ -1,6 +1,8 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
+import { useToastStore } from '../stores/toast'
+const toast = useToastStore()
 import { Wrench, Download, CheckCircle, Loader, Play, Square, RotateCw } from 'lucide-vue-next'
 
 const tools = ref([
@@ -57,9 +59,9 @@ const installTool = async (tool) => {
     }
     await axios.post(url)
     tool.installed = true
-    alert(tool.name + ' installed successfully!')
+    toast.success(tool.name + ' installed successfully!')
   } catch (err) {
-    alert('Failed: ' + (err.response?.data?.error || err.message))
+    toast.error('Failed: ' + (err.response?.data?.error || err.message))
   } finally {
     tool.loading = false
   }
@@ -79,7 +81,7 @@ const installExtension = async (ext) => {
     await axios.post('/api/php/extensions/install', { version: '8.3', extension: ext.name })
     ext.installed = true
   } catch (err) {
-    alert('Failed: ' + (err.response?.data?.error || err.message))
+    toast.error('Failed: ' + (err.response?.data?.error || err.message))
   }
 }
 

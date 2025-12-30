@@ -3,6 +3,8 @@ import { ref, onMounted } from 'vue'
 import axios from 'axios'
 import { Database, Plus, Trash2, Play, Table, Archive, RotateCcw, Boxes, HardDrive } from 'lucide-vue-next'
 import { useAuthStore } from '../stores/auth'
+import { useToastStore } from '../stores/toast'
+const toast = useToastStore()
 
 const dbs = ref([])
 const showModal = ref(false)
@@ -39,7 +41,7 @@ const createDb = async () => {
     newDbName.value = ''
     fetchDbs()
   } catch (error) {
-    alert('Failed to create database: ' + (error.response?.data?.error || error.message))
+    toast.error('Failed to create database: ' + (error.response?.data?.error || error.message))
   }
 }
 
@@ -51,7 +53,7 @@ const deleteDb = async (db) => {
     })
     fetchDbs()
   } catch (error) {
-    alert('Failed to delete database: ' + (error.response?.data?.error || error.message))
+    toast.error('Failed to delete database: ' + (error.response?.data?.error || error.message))
   }
 }
 

@@ -1,6 +1,8 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
+import { useToastStore } from '../stores/toast'
+const toast = useToastStore()
 import { Users, Plus, Trash2, Shield, User } from 'lucide-vue-next'
 
 const users = ref([])
@@ -27,7 +29,7 @@ const createUser = async () => {
     newUser.value = { username: '', password: '', role: 'user' }
     fetchUsers()
   } catch (err) {
-    alert('Failed: ' + (err.response?.data?.error || err.message))
+    toast.error('Failed: ' + (err.response?.data?.error || err.message))
   }
 }
 
@@ -37,7 +39,7 @@ const deleteUser = async (id, username) => {
     await axios.delete(`/api/users/${id}`)
     fetchUsers()
   } catch (err) {
-    alert('Failed: ' + (err.response?.data?.error || err.message))
+    toast.error('Failed: ' + (err.response?.data?.error || err.message))
   }
 }
 
@@ -47,7 +49,7 @@ const changeRole = async (id, currentRole) => {
     await axios.put(`/api/users/${id}/role`, { role: newRole })
     fetchUsers()
   } catch (err) {
-    alert('Failed: ' + (err.response?.data?.error || err.message))
+    toast.error('Failed: ' + (err.response?.data?.error || err.message))
   }
 }
 

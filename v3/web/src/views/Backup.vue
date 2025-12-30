@@ -2,6 +2,8 @@
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
 import { Archive, Download, Upload, Trash2, RotateCw, HardDrive, Database } from 'lucide-vue-next'
+import { useToastStore } from '../stores/toast'
+const toast = useToastStore()
 
 const backups = ref([])
 const loading = ref(false)
@@ -28,9 +30,9 @@ const backupWebsite = async () => {
   try {
     await axios.post(`/api/backup/website/${domain}`)
     fetchBackups()
-    alert('Website backup created!')
+    toast.success('Website backup created!')
   } catch (err) {
-    alert('Failed: ' + (err.response?.data?.error || err.message))
+    toast.error('Failed: ' + (err.response?.data?.error || err.message))
   } finally {
     backingUp.value = false
   }
@@ -43,9 +45,9 @@ const backupDatabase = async () => {
   try {
     await axios.post(`/api/backup/database/${name}`)
     fetchBackups()
-    alert('Database backup created!')
+    toast.success('Database backup created!')
   } catch (err) {
-    alert('Failed: ' + (err.response?.data?.error || err.message))
+    toast.error('Failed: ' + (err.response?.data?.error || err.message))
   } finally {
     backingUp.value = false
   }
@@ -57,9 +59,9 @@ const backupFull = async () => {
   try {
     await axios.post('/api/backup/full')
     fetchBackups()
-    alert('Full backup created!')
+    toast.success('Full backup created!')
   } catch (err) {
-    alert('Failed: ' + (err.response?.data?.error || err.message))
+    toast.error('Failed: ' + (err.response?.data?.error || err.message))
   } finally {
     backingUp.value = false
   }
@@ -69,9 +71,9 @@ const restoreBackup = async (path) => {
   if (!confirm(`Restore from ${path}?`)) return
   try {
     await axios.post('/api/backup/restore', { path })
-    alert('Backup restored successfully!')
+    toast.success('Backup restored successfully!')
   } catch (err) {
-    alert('Failed: ' + (err.response?.data?.error || err.message))
+    toast.error('Failed: ' + (err.response?.data?.error || err.message))
   }
 }
 
@@ -80,10 +82,10 @@ const cleanupBackups = async () => {
   if (!days) return
   try {
     const res = await axios.delete(`/api/backup/cleanup?days=${days}`)
-    alert(`Deleted ${res.data?.deleted || 0} old backups`)
+    toast.success(`Deleted ${res.data?.deleted || 0} old backups`)
     fetchBackups()
   } catch (err) {
-    alert('Failed: ' + (err.response?.data?.error || err.message))
+    toast.error('Failed: ' + (err.response?.data?.error || err.message))
   }
 }
 

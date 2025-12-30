@@ -8,6 +8,8 @@ import {
 import axios from 'axios'
 import { useAuthStore } from '../stores/auth'
 import { useRouter } from 'vue-router'
+import { useToastStore } from '../stores/toast'
+const toast = useToastStore()
 import Skeleton from '../components/Skeleton.vue'
 import {
   Chart as ChartJS,
@@ -142,9 +144,9 @@ const quickActions = [
 const fixPermissions = async () => {
   try {
     await axios.post('/api/system/fix-permissions')
-    alert('Permissions fixed!')
+    toast.success('Permissions fixed!')
   } catch (e) {
-    alert('Failed to fix permissions')
+    toast.error('Failed to fix permissions')
   }
 }
 
@@ -153,7 +155,7 @@ const enableSSL = async (domain) => {
     await axios.post('/api/ssl/obtain', { domain })
     fetchStats()
   } catch (e) {
-    alert('Failed to enable SSL')
+    toast.error('Failed to enable SSL')
   }
 }
 

@@ -2,6 +2,8 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import axios from 'axios'
 import { Cpu, RotateCw, XCircle } from 'lucide-vue-next'
+import { useToastStore } from '../stores/toast'
+const toast = useToastStore()
 
 const processes = ref([])
 const loading = ref(false)
@@ -27,7 +29,7 @@ const killProcess = async (pid) => {
     await axios.delete(`/api/processes/${pid}`)
     fetchProcesses()
   } catch (err) {
-    alert('Failed: ' + (err.response?.data?.error || err.message))
+    toast.error('Failed: ' + (err.response?.data?.error || err.message))
   }
 }
 

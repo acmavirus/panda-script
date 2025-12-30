@@ -7,7 +7,8 @@ import {
   RefreshCw, Save, X, Upload, Download, Archive, Search, MoreVertical,
   ChevronRight, FileText, Info, ExternalLink, Copy, Scissors
 } from 'lucide-vue-next'
-import { VueMonacoEditor } from '@guolao/vue-monaco-editor'
+import { VueMonacoEditor } from '@guolao/vue-monaco-editor'import { useToastStore } from '../stores/toast'
+const toast = useToastStore()
 
 const currentPath = ref('/')
 const files = ref([])
@@ -128,7 +129,7 @@ const editFile = async (file) => {
     fileContent.value = res.data.content
     editingFile.value = file
   } catch (err) {
-    alert('Failed to read file: ' + (err.response?.data?.error || err.message))
+    toast.error('Failed to read file: ' + (err.response?.data?.error || err.message))
   } finally {
     loading.value = false
   }
@@ -142,10 +143,10 @@ const saveFile = async () => {
       path: editingFile.value.path,
       content: fileContent.value
     })
-    alert('File saved successfully')
+    toast.success('File saved successfully')
     // We don't close the editor here to allow continued editing
   } catch (err) {
-    alert('Failed to save file: ' + (err.response?.data?.error || err.message))
+    toast.error('Failed to save file: ' + (err.response?.data?.error || err.message))
   } finally {
     loading.value = false
   }
@@ -157,7 +158,7 @@ const deleteItem = async (file) => {
     await axios.post('/api/files/delete', null, { params: { path: file.path } })
     loadFiles(currentPath.value)
   } catch (err) {
-    alert('Failed to delete: ' + (err.response?.data?.error || err.message))
+    toast.error('Failed to delete: ' + (err.response?.data?.error || err.message))
   }
 }
 
@@ -172,7 +173,7 @@ const deleteSelected = async () => {
     selectedFiles.value = []
     loadFiles(currentPath.value)
   } catch (err) {
-    alert('Failed to delete some items')
+    toast.error('Failed to delete some items')
   } finally {
     loading.value = false
   }
@@ -240,9 +241,9 @@ const pasteFromClipboard = async () => {
     }
     loadFiles(currentPath.value)
     if (clipboard.value.action === 'move') clipboard.value = { action: null, files: [] }
-    alert('Paste successful')
+    toast.success('Paste successful')
   } catch (err) {
-    alert('Paste failed')
+    toast.error('Paste failed')
   } finally {
     loading.value = false
     closeContextMenu()
@@ -281,9 +282,9 @@ const savePermissions = async () => {
     await axios.post('/api/files/chmod', { path: permFile.value.path, mode })
     showPermissionModal.value = false
     loadFiles(currentPath.value)
-    alert('Permissions updated')
+    toast.success('Permissions updated')
   } catch (err) {
-    alert('Failed to update permissions')
+    toast.error('Failed to update permissions')
   } finally {
     loading.value = false
   }
@@ -298,7 +299,7 @@ const viewArchiveContents = async (file) => {
     showArchiveListModal.value = true
     closeContextMenu()
   } catch (err) {
-    alert('Failed to read archive')
+    toast.error('Failed to read archive')
   } finally {
     loading.value = false
   }
@@ -314,9 +315,9 @@ const downloadRemoteFile = async () => {
     remoteUrl.value = ''
     remoteFilename.value = ''
     loadFiles(currentPath.value)
-    alert('Download successful')
+    toast.success('Download successful')
   } catch (err) {
-    alert('Download failed')
+    toast.error('Download failed')
   } finally {
     loading.value = false
   }
@@ -336,9 +337,9 @@ const extractFile = async (file) => {
       output: currentPath.value
     })
     loadFiles(currentPath.value)
-    alert('Extracted successfully')
+    toast.success('Extracted successfully')
   } catch (err) {
-    alert('Extraction failed: ' + (err.response?.data?.error || err.message))
+    toast.error('Extraction failed: ' + (err.response?.data?.error || err.message))
   } finally {
     loading.value = false
   }
@@ -356,7 +357,7 @@ const createFolder = async () => {
     newFolderName.value = ''
     loadFiles(currentPath.value)
   } catch (err) {
-    alert('Failed to create folder: ' + (err.response?.data?.error || err.message))
+    toast.error('Failed to create folder: ' + (err.response?.data?.error || err.message))
   }
 }
 
@@ -372,7 +373,7 @@ const createFile = async () => {
     newFileName.value = ''
     loadFiles(currentPath.value)
   } catch (err) {
-    alert('Failed to create file: ' + (err.response?.data?.error || err.message))
+    toast.error('Failed to create file: ' + (err.response?.data?.error || err.message))
   }
 }
 
@@ -388,9 +389,9 @@ const compressFiles = async () => {
     showCompressModal.value = false
     compressOutput.value = ''
     loadFiles(currentPath.value)
-    alert('Compressed successfully')
+    toast.success('Compressed successfully')
   } catch (err) {
-    alert('Compression failed: ' + (err.response?.data?.error || err.message))
+    toast.error('Compression failed: ' + (err.response?.data?.error || err.message))
   } finally {
     loading.value = false
   }
@@ -419,9 +420,9 @@ const handleFileUpload = async (event) => {
       }
     })
     loadFiles(currentPath.value)
-    alert('Upload successful')
+    toast.success('Upload successful')
   } catch (err) {
-    alert('Upload failed: ' + (err.response?.data?.error || err.message))
+    toast.error('Upload failed: ' + (err.response?.data?.error || err.message))
   } finally {
     event.target.value = '' // Reset input
     loading.value = false

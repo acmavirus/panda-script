@@ -2,6 +2,8 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import axios from 'axios'
 import { Rocket, Play, Square, RotateCw, Trash2, FileText, Activity, RefreshCw } from 'lucide-vue-next'
+import { useToastStore } from '../stores/toast'
+const toast = useToastStore()
 
 const processes = ref([])
 const loading = ref(false)
@@ -30,7 +32,7 @@ const pm2Action = async (name, action) => {
     await axios.post(`/api/pm2/${name}/${action}`)
     fetchProcesses()
   } catch (err) {
-    alert(`Failed to ${action} process: ` + (err.response?.data?.error || err.message))
+    toast.error(`Failed to ${action} process: ` + (err.response?.data?.error || err.message))
   }
 }
 

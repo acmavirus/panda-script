@@ -3,6 +3,8 @@ import { ref, onMounted, computed } from 'vue'
 import axios from 'axios'
 import { Store, Download, Trash2, Check, ExternalLink, AlertTriangle, Package, Server, Container } from 'lucide-vue-next'
 import { useAuthStore } from '../stores/auth'
+import { useToastStore } from '../stores/toast'
+const toast = useToastStore()
 
 const authStore = useAuthStore()
 const apps = ref([])
@@ -48,10 +50,10 @@ const installDocker = async () => {
     await axios.post('/api/system/install-docker', {}, {
       headers: { Authorization: `Bearer ${authStore.token}` }
     })
-    alert('Docker installed successfully! Refreshing...')
+    toast.success('Docker installed successfully! Refreshing...')
     fetchApps()
   } catch (err) {
-    alert('Failed to install Docker: ' + (err.response?.data?.error || err.message))
+    toast.error('Failed to install Docker: ' + (err.response?.data?.error || err.message))
   } finally {
     installingDocker.value = false
   }
@@ -60,7 +62,7 @@ const installDocker = async () => {
 const installApp = async (slug, isSystem = false) => {
   // Only check Docker for non-system apps
   if (!isSystem && !dockerInstalled.value) {
-    alert('Please install Docker first!')
+    toast.warning('Please install Docker first!')
     return
   }
   installing.value = slug
@@ -69,14 +71,14 @@ const installApp = async (slug, isSystem = false) => {
       headers: { Authorization: `Bearer ${authStore.token}` }
     })
     fetchApps()
-    alert('Installation completed successfully!')
+    toast.success('Installation completed successfully!')
   } catch (err) {
     const errorMsg = err.response?.data?.error || err.message
     if (errorMsg.toLowerCase().includes('docker')) {
       dockerInstalled.value = false
-      alert('Docker is not installed. Please install Docker first.')
+      toast.warning('Docker is not installed. Please install Docker first.')
     } else {
-      alert('Failed: ' + errorMsg)
+      toast.error('Failed: ' + errorMsg)
     }
   } finally {
     installing.value = ''
@@ -91,7 +93,7 @@ const uninstallApp = async (slug, name) => {
     })
     fetchApps()
   } catch (err) {
-    alert('Failed: ' + (err.response?.data?.error || err.message))
+    toast.error('Failed: ' + (err.response?.data?.error || err.message))
   }
 }
 

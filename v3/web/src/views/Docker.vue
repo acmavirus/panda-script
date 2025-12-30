@@ -2,6 +2,8 @@
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
 import { Box, Play, Square, RotateCw, Activity, Terminal } from 'lucide-vue-next'
+import { useToastStore } from '../stores/toast'
+const toast = useToastStore()
 
 const containers = ref([])
 const loading = ref(false)
@@ -25,7 +27,7 @@ const containerAction = async (id, action) => {
     await axios.post(`/api/docker/containers/${id}/${action}`)
     fetchContainers()
   } catch (err) {
-    alert(`Failed to ${action} container: ` + (err.response?.data?.error || err.message))
+    toast.error(`Failed to ${action} container: ` + (err.response?.data?.error || err.message))
   }
 }
 

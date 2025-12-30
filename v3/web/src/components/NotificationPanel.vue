@@ -2,6 +2,9 @@
 import { ref, onMounted, computed } from 'vue'
 import { Bell, X, Check, CheckCheck, Trash2, Settings, Send, Mail, MessageCircle } from 'lucide-vue-next'
 import axios from 'axios'
+import { useToastStore } from '../stores/toast'
+
+const toast = useToastStore()
 
 const props = defineProps({
   show: Boolean
@@ -53,9 +56,9 @@ const fetchConfig = async () => {
 const saveConfig = async () => {
   try {
     await axios.put('/api/notifications/config', config.value)
-    alert('Settings saved!')
+    toast.success('Settings saved!')
   } catch (e) {
-    alert('Failed to save settings')
+    toast.error('Failed to save settings')
   }
 }
 
@@ -94,18 +97,18 @@ const clearAll = async () => {
 const testTelegram = async () => {
   try {
     await axios.post('/api/notifications/test/telegram')
-    alert('Test notification sent to Telegram!')
+    toast.success('Test notification sent to Telegram!')
   } catch (e) {
-    alert('Failed to send test notification')
+    toast.error('Failed to send test notification')
   }
 }
 
 const testEmail = async () => {
   try {
     await axios.post('/api/notifications/test/email')
-    alert('Test email sent!')
+    toast.success('Test email sent!')
   } catch (e) {
-    alert('Failed to send test email')
+    toast.error('Failed to send test email')
   }
 }
 
