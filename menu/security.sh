@@ -65,7 +65,7 @@ security_menu() {
                     scan_web_directory "$domain"
                 fi
                 ;;
-            12) source "$PANDA_DIR/security/wp_fail2ban.sh"; harden_wordpress_security ;;
+            12) source "$PANDA_DIR/security/wp_hardening.sh"; wp_security_menu ;;
             13) source "$PANDA_DIR/modules/security/guard.sh"; guard_menu ;;
             0) return ;;
         esac
