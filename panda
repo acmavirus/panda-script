@@ -70,8 +70,8 @@ case "${1:-}" in
         ;;
     update)
         source_core
-        if [[ -f "$PANDA_DIR/../update" ]]; then
-            bash "$PANDA_DIR/../update"
+        if [[ -f "$PANDA_DIR/update" ]]; then
+            bash "$PANDA_DIR/update"
         else
             echo "Update script not found"
         fi
