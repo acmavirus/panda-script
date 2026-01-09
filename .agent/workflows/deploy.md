@@ -5,7 +5,7 @@ description: Deploy Panda Script updates to Test and Production servers
 ## Deployment Strategy
 Panda Script follows a strict **Test-Before-Production** deployment rule:
 1. **Test Server**: `*.52` (Standardized Web Root: `/home`)
-2. **Production Server**: `160.250.130.123` (Standardized Web Root: `/home`)
+2. **Production Server**: `103.162.20.17` (Standardized Web Root: `/home`)
 
 ## Workflow Steps
 
@@ -22,12 +22,12 @@ git push origin main
 Deploy to production server with full build:
 // turbo
 ```bash
-ssh root@160.250.130.123 "cd /opt/panda && git fetch origin && git reset --hard origin/main && cd v3/web && npm run build && cd .. && go mod tidy && go build -o panda-linux main.go && chmod +x panda-linux && systemctl restart panda"
+ssh root@103.162.20.17 "cd /opt/panda && git fetch origin && git reset --hard origin/main && cd v3/web && npm run build && cd .. && go mod tidy && go build -o panda-linux main.go && chmod +x panda-linux && systemctl restart panda"
 ```
 
 After deployment, verify the health status:
 ```bash
-ssh root@160.250.130.123 "curl -s http://localhost:8888/api/health"
+ssh root@103.162.20.17 "curl -s http://localhost:8888/api/health"
 ```
 
 ## Maintenance Rules

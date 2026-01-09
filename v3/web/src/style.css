@@ -384,6 +384,11 @@ body {
   color: var(--text-muted);
 }
 
+/* Input with icon - proper padding to avoid overlap */
+.panda-input-with-icon {
+  padding-left: 44px !important;
+}
+
 /* Command Palette (Ctrl+K) */
 .command-palette-overlay {
   position: fixed;

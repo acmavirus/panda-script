@@ -108,7 +108,7 @@ const handleLogin = async () => {
                 v-model="username" 
                 type="text"
                 required
-                class="panda-input pl-11"
+                class="panda-input panda-input-with-icon"
                 placeholder="Enter username"
                 autocomplete="username"
               >
@@ -124,7 +124,7 @@ const handleLogin = async () => {
                 v-model="password" 
                 type="password"
                 required
-                class="panda-input pl-11"
+                class="panda-input panda-input-with-icon"
                 placeholder="Enter password"
                 autocomplete="current-password"
               >
